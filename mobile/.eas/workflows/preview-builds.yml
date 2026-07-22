@@ -1,0 +1,23 @@
+name: Preview builds
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "mobile/**"
+  workflow_dispatch: {}
+
+jobs:
+  android_preview_build:
+    name: Build Android preview
+    type: build
+    params:
+      platform: android
+      profile: preview
+
+  ios_preview_build:
+    name: Build iOS preview
+    type: build
+    params:
+      platform: ios
+      profile: preview

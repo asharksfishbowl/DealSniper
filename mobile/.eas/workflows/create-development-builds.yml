@@ -1,0 +1,65 @@
+name: Create development builds
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "mobile/**"
+  workflow_dispatch: {}
+
+jobs:
+  fingerprint:
+    name: Fingerprint
+    type: fingerprint
+    environment: development
+
+  get_android_build:
+    name: Check for existing Android build
+    needs: [fingerprint]
+    type: get-build
+    params:
+      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
+      profile: development
+
+  get_ios_device_build:
+    name: Check for existing iOS device build
+    needs: [fingerprint]
+    type: get-build
+    params:
+      fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
+      profile: development
+
+  get_ios_simulator_build:
+    name: Check for existing iOS simulator build
+    needs: [fingerprint]
+    type: get-build
+    params:
+      fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
+      profile: development-simulator
+
+  android_development_build:
+    name: Build Android
+    needs: [get_android_build]
+    if: ${{ !needs.get_android_build.outputs.build_id }}
+    type: build
+    params:
+      platform: android
+      profile: development
+
+  ios_device_development_build:
+    name: Build iOS device
+    needs: [get_ios_device_build]
+    if: ${{ !needs.get_ios_device_build.outputs.build_id }}
+    type: build
+    params:
+      platform: ios
+      profile: development
+
+  ios_simulator_development_build:
+    name: Build iOS simulator
+    needs: [get_ios_simulator_build]
+    if: ${{ !needs.get_ios_simulator_build.outputs.build_id }}
+    type: build
+    params:
+      platform: ios
+      profile: development-simulator

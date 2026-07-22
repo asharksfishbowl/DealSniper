@@ -5,6 +5,7 @@
   "dependencies": {
     "@expo-google-fonts/bebas-neue": "^0.4.1",
     "@expo-google-fonts/ibm-plex-mono": "^0.4.1",
+    "@expo/ngrok": "^4.1.0",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/native": "^7.3.8",
@@ -37,7 +38,9 @@
     "eas:dev:android": "eas build --platform android --profile development",
     "eas:dev:ios": "eas build --platform ios --profile development",
     "eas:preview:android": "eas build --platform android --profile preview",
-    "eas:preview:ios": "eas build --platform ios --profile preview"
+    "eas:preview:ios": "eas build --platform ios --profile preview",
+    "eas:workflow:dev": "eas workflow:run .eas/workflows/create-development-builds.yml",
+    "eas:workflow:preview": "eas workflow:run .eas/workflows/preview-builds.yml"
   },
   "private": true
 }

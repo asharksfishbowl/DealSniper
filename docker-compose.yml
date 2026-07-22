@@ -39,6 +39,8 @@ services:
       # Must be a LAN IP your phone can reach (not localhost). Set in repo-root .env
       EXPO_PUBLIC_API_URL: ${EXPO_PUBLIC_API_URL:-http://host.docker.internal:8000}
       REACT_NATIVE_PACKAGER_HOSTNAME: ${REACT_NATIVE_PACKAGER_HOSTNAME:-host.docker.internal}
+      # tunnel = works across Wi‑Fi isolation; set EXPO_START_MODE=lan for local-only
+      EXPO_START_MODE: ${EXPO_START_MODE:-tunnel}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -46,6 +48,7 @@ services:
       - ./mobile/src:/app/src
       - ./mobile/App.tsx:/app/App.tsx
       - ./mobile/app.json:/app/app.json
+      - ./mobile/docker-entrypoint.sh:/docker-entrypoint.sh
     depends_on:
       - api
     restart: unless-stopped

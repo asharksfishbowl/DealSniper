@@ -17,6 +17,7 @@
     },
     "android": {
       "package": "com.dealsniper.app",
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#0B0F0C",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -25,6 +26,7 @@
       },
       "predictiveBackGestureEnabled": false
     },
+    "scheme": "dealsniper",
     "web": {
       "favicon": "./assets/favicon.png"
     },
