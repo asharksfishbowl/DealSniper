@@ -1,0 +1,54 @@
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    expose:
+      - "8000"
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: sqlite:////data/dealsniper.db
+      CORS_ORIGINS: "*"
+    volumes:
+      - dealsniper_data:/data
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  mobile:
+    build:
+      context: ./mobile
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+      - "19000:19000"
+      - "19001:19001"
+      - "19002:19002"
+    environment:
+      # Must be a LAN IP your phone can reach (not localhost). Set in repo-root .env
+      EXPO_PUBLIC_API_URL: ${EXPO_PUBLIC_API_URL:-http://host.docker.internal:8000}
+      REACT_NATIVE_PACKAGER_HOSTNAME: ${REACT_NATIVE_PACKAGER_HOSTNAME:-host.docker.internal}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Live-edit app source without rebuilding the image
+      - ./mobile/src:/app/src
+      - ./mobile/App.tsx:/app/App.tsx
+      - ./mobile/app.json:/app/app.json
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  dealsniper_data:

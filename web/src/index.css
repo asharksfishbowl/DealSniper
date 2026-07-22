@@ -1,0 +1,44 @@
+@import "@fontsource/bebas-neue/400.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/700.css";
+
+:root {
+  color-scheme: dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #0b0f0c;
+  cursor: none;
+}
+
+body.show-cursor {
+  cursor: auto;
+}
+
+button,
+a {
+  cursor: none;
+}
+
+body.show-cursor button,
+body.show-cursor a,
+body.show-cursor a.row-link,
+body.show-cursor a.hero-link {
+  cursor: pointer;
+}

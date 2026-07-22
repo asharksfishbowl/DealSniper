@@ -1,0 +1,37 @@
+.tape {
+  background: #0e1411;
+  border-bottom: 1px solid #1e2a22;
+  padding: 0.55rem 0 0.7rem;
+}
+
+.tape-label {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  color: #4a5c4e;
+  padding: 0 1.25rem 0.35rem;
+}
+
+.tape-viewport {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.tape-track {
+  display: inline-flex;
+  gap: 4rem;
+  animation: tape-scroll linear infinite;
+  color: #2ee56a;
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 500;
+  font-size: clamp(1rem, 1.6vw, 1.35rem);
+}
+
+@keyframes tape-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}

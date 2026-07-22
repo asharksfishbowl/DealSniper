@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+*.db
+.DS_Store
+node_modules/
+.expo/
+dist/
+*.log
+quota_state.json
+mobile/expo-go-qr.png
