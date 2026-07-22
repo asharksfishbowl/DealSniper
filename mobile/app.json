@@ -10,7 +10,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.dealsniper.app",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -34,6 +36,11 @@
           "color": "#2EE56A"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "90f640ee-13ad-4c90-a4ad-ced066397dd7"
+      }
+    }
   }
 }
