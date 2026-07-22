@@ -30,7 +30,11 @@
     "start:docker-api": "EXPO_PUBLIC_API_URL=http://127.0.0.1:8000 expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "eas:android": "eas build --platform android",
+    "eas:ios": "eas build --platform ios",
+    "eas:preview:android": "eas build --platform android --profile preview",
+    "eas:preview:ios": "eas build --platform ios --profile preview"
   },
   "private": true
 }

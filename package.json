@@ -1,0 +1,11 @@
+{
+  "name": "dealsniper",
+  "private": true,
+  "scripts": {
+    "eas:android": "npm --prefix mobile run eas:android",
+    "eas:ios": "npm --prefix mobile run eas:ios",
+    "eas:preview:android": "npm --prefix mobile run eas:preview:android",
+    "eas:preview:ios": "npm --prefix mobile run eas:preview:ios",
+    "eas:configure": "cd mobile && eas build:configure"
+  }
+}
