@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -11,6 +13,9 @@ logger = logging.getLogger(__name__)
 
 # Empty string = Amazon-style untargeted /deals-v2 (no keyword).
 HOT_DEALS_QUERY_KEY = ""
+
+# Same directory level as quota_state.json (backend/).
+_BENCHMARK_LOG_PATH = Path(__file__).resolve().parent.parent / "benchmark_log.jsonl"
 
 
 def _now() -> datetime:
@@ -60,16 +65,39 @@ def seconds_until_refresh(
     return int(remaining) if remaining > 0 else 0
 
 
+def _log_benchmark_fetch_check(
+    *, cycle_id: str, retailer: str, query_key: str, may_fetch: bool
+) -> None:
+    entry = {
+        "ts": _now().isoformat(),
+        "cycle_id": cycle_id,
+        "retailer": retailer,
+        "query_key": normalize_query_key(query_key),
+        "may_fetch": may_fetch,
+    }
+    try:
+        with open(_BENCHMARK_LOG_PATH, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception as exc:
+        logger.warning("Failed to write benchmark log: %s", exc)
+
+
 def should_fetch_search(
     db: Session,
     retailer: str,
     query_key: str,
     country: str,
     ttl_seconds: int,
+    cycle_id: str | None = None,
 ) -> tuple[bool, str]:
     """Return (may_call_api, reason)."""
     remaining = seconds_until_refresh(db, retailer, query_key, country, ttl_seconds)
-    if remaining <= 0:
+    may_fetch = remaining <= 0
+    if cycle_id is not None:
+        _log_benchmark_fetch_check(
+            cycle_id=cycle_id, retailer=retailer, query_key=query_key, may_fetch=may_fetch
+        )
+    if may_fetch:
         return True, ""
     label = normalize_query_key(query_key) or "hot-deals"
     hours = max(1, remaining // 3600)
