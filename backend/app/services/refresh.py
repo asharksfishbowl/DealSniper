@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 import math
+import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
@@ -165,10 +167,125 @@ async def _send_alerts(db: Session, device_id: str | None, saved: list[Deal]) ->
     return alerts_sent
 
 
+@dataclass
+class RefreshSummary:
+    message: str
+    refresh_state: str
+    cache_age_seconds: int | None
+    cooldown_seconds: int | None
+    quota_reset_date: str | None
+
+
+def _classify_refresh_state(
+    *, fetched: list[NormalizedDeal], quota_hit: list[str], limited: list[str]
+) -> str:
+    """Fixed precedence (highest first): quota_exhausted > rate_limited > live > cached."""
+    if quota_hit:
+        return "quota_exhausted"
+    if limited:
+        return "rate_limited"
+    if fetched:
+        return "live"
+    return "cached"
+
+
+def _summarize_refresh(
+    *,
+    db: Session,
+    fetched: list[NormalizedDeal],
+    cache_hits: list[str],
+    quota_hit: list[str],
+    limited: list[str],
+    retry_after: int,
+    query_key: str,
+    country: str,
+    ttl: int,
+    cooldown_seconds: int,
+) -> RefreshSummary:
+    """Pure-ish derivation of the status message + refresh_state contract.
+
+    Takes `db`/`country` (beyond the message-building inputs) solely to compute
+    `cache_age_seconds` for the "cached" state directly from SearchFetch rows —
+    every other field is a deterministic function of the passed-in lists/counts.
+    Callers are responsible for any side effects (rate-limit bookkeeping, cache
+    TTL lookups feeding `retry_after`, logging) — this function only builds the
+    RefreshSummary.
+    """
+    if cache_hits and not fetched and not limited and not quota_hit:
+        label = query_key or "hot-deals"
+        searches_per_day = max(1, math.ceil(86_400 / max(1, ttl)))
+        message = (
+            f"Serving DB cache for {', '.join(cache_hits)} · "
+            f"'{label}' (live search ≤ ~{searches_per_day}×/day)"
+        )
+    elif quota_hit:
+        which = "+".join(quota_hit)
+        message = f"{which} monthly API quota exhausted · serving cache until next month"
+        if fetched:
+            message = (
+                f"{which} monthly quota hit · saved {len(fetched)} deals · "
+                "other stores may still work"
+            )
+    elif limited:
+        which = "+".join(limited)
+        message = f"{which} rate-limited · cooling down {cooldown_seconds}s · serving cache"
+        if fetched:
+            message = f"{which} rate-limited · saved {len(fetched)} deals · cooling down"
+    elif not fetched and not cache_hits:
+        message = "No new deals fetched; serving cache"
+    elif fetched and cache_hits:
+        message = f"Fetched {len(fetched)} · cache hit {', '.join(cache_hits)}"
+    else:
+        message = "ok"
+
+    refresh_state = _classify_refresh_state(fetched=fetched, quota_hit=quota_hit, limited=limited)
+
+    cache_age_seconds: int | None = None
+    cooldown_out: int | None = None
+    quota_reset_date: str | None = None
+
+    if refresh_state == "quota_exhausted":
+        reset_dates = []
+        for retailer_name in quota_hit:
+            adapter_cls = STORE_ADAPTERS.get(retailer_name.lower())
+            if adapter_cls is None:
+                continue
+            reset = quota.quota_reset_at(adapter_cls.api_slug)
+            if reset is not None:
+                reset_dates.append(reset)
+        quota_reset_date = min(reset_dates).date().isoformat() if reset_dates else None
+    elif refresh_state == "rate_limited":
+        cooldown_out = retry_after
+    elif refresh_state == "live":
+        cache_age_seconds = 0
+    else:  # "cached"
+        if cache_hits:
+            now = datetime.now(timezone.utc)
+            ages: list[float] = []
+            for retailer_name in cache_hits:
+                row = search_cache.get_fetch(db, retailer_name, query_key, country)
+                if row is None:
+                    continue
+                last_fetched = row.last_fetched_at
+                if last_fetched.tzinfo is None:
+                    last_fetched = last_fetched.replace(tzinfo=timezone.utc)
+                ages.append((now - last_fetched).total_seconds())
+            cache_age_seconds = int(min(ages)) if ages else None
+
+    return RefreshSummary(
+        message=message,
+        refresh_state=refresh_state,
+        cache_age_seconds=cache_age_seconds,
+        cooldown_seconds=cooldown_out,
+        quota_reset_date=quota_reset_date,
+    )
+
+
 async def refresh_deals(
     db: Session, device_id: str | None = None, force: bool = False
 ) -> dict:
     settings = get_settings()
+    cycle_id = uuid.uuid4().hex
     prefs = None
     if device_id:
         prefs = db.query(Preference).filter(Preference.device_id == device_id).one_or_none()
@@ -184,6 +301,10 @@ async def refresh_deals(
     cache_hits: list[str] = []
     retry_after = 0
     message = "ok"
+    refresh_state = "cached"
+    cache_age_seconds: int | None = None
+    cooldown_seconds: int | None = None
+    quota_reset_date: str | None = None
 
     # Short global throttle (force bypasses this). Per-query daily cache still applies.
     skip, skip_msg = rate_limit.should_skip_external(
@@ -194,10 +315,13 @@ async def refresh_deals(
         used_cache_only = True
         skipped_external = True
         message = "No OPENWEBNINJA_API_KEY set; serving cached deals only"
+        refresh_state = "cached"
     elif skip:
         skipped_external = True
         retry_after = rate_limit.seconds_until_allowed(settings.refresh_min_interval_seconds)
         message = skip_msg
+        refresh_state = "rate_limited"
+        cooldown_seconds = retry_after
     else:
         limited: list[str] = []
         quota_hit: list[str] = []
@@ -234,12 +358,14 @@ async def refresh_deals(
                 query_key=query_key,
                 country=country,
                 ttl_seconds=ttl,
+                cycle_id=cycle_id,
             )
             if not may_fetch:
                 cache_hits.append(adapter_cls.retailer)
                 continue
 
             adapter = adapter_cls(api_key)
+            adapter.cycle_id = cycle_id
             deals = await adapter.fetch_deals(queries[:1], country=country)
             # Catalog noise: keep only products that are actually discounted.
             min_pct = settings.min_ingest_pct_off
@@ -263,6 +389,12 @@ async def refresh_deals(
                 quota_hit.append(adapter_cls.retailer.title())
             elif adapter.was_rate_limited:
                 limited.append(adapter_cls.retailer.title())
+            elif adapter.had_error:
+                logger.warning(
+                    "%s fetch failed (network/parse/error-payload) — not stamping cache, "
+                    "will retry next refresh",
+                    adapter_cls.retailer,
+                )
             else:
                 # Stamp cache on successful response (even if few discounted hits).
                 search_cache.mark_search_fetched(
@@ -276,49 +408,40 @@ async def refresh_deals(
         if called_any:
             rate_limit.mark_external_fetch()
 
-        if cache_hits and not fetched and not limited and not quota_hit:
+        state = _classify_refresh_state(fetched=fetched, quota_hit=quota_hit, limited=limited)
+        if state == "quota_exhausted":
+            logger.warning("Refresh skipped quota-exhausted stores: %s", ", ".join(quota_hit))
+        elif state == "rate_limited":
+            rate_limit.mark_rate_limited(settings.rate_limit_cooldown_seconds)
+            retry_after = settings.rate_limit_cooldown_seconds
+        elif state == "live":
+            rate_limit.clear_rate_limit()
+        elif cache_hits:  # state == "cached", and something is actually cached
             skipped_external = True
             used_cache_only = True
-            label = query_key or "hot-deals"
-            searches_per_day = max(1, math.ceil(86_400 / max(1, ttl)))
-            message = (
-                f"Serving DB cache for {', '.join(cache_hits)} · "
-                f"'{label}' (live search ≤ ~{searches_per_day}×/day)"
-            )
             remaining = [
                 search_cache.seconds_until_refresh(db, r, query_key, country, ttl)
                 for r in cache_hits
             ]
             retry_after = min(remaining) if remaining else 0
-        elif quota_hit:
-            which = "+".join(quota_hit)
-            message = (
-                f"{which} monthly API quota exhausted · serving cache until next month"
-            )
-            if fetched:
-                message = (
-                    f"{which} monthly quota hit · saved {len(fetched)} deals · "
-                    "other stores may still work"
-                )
-            logger.warning("Refresh skipped quota-exhausted stores: %s", ", ".join(quota_hit))
-        elif limited:
-            rate_limit.mark_rate_limited(settings.rate_limit_cooldown_seconds)
-            which = "+".join(limited)
-            message = (
-                f"{which} rate-limited · cooling down "
-                f"{settings.rate_limit_cooldown_seconds}s · serving cache"
-            )
-            retry_after = settings.rate_limit_cooldown_seconds
-            if fetched:
-                message = f"{which} rate-limited · saved {len(fetched)} deals · cooling down"
-        elif not fetched and not cache_hits:
-            message = "No new deals fetched; serving cache"
-        elif fetched and cache_hits:
-            message = f"Fetched {len(fetched)} · cache hit {', '.join(cache_hits)}"
-            rate_limit.clear_rate_limit()
-        else:
-            message = "ok"
-            rate_limit.clear_rate_limit()
+
+        summary = _summarize_refresh(
+            db=db,
+            fetched=fetched,
+            cache_hits=cache_hits,
+            quota_hit=quota_hit,
+            limited=limited,
+            retry_after=retry_after,
+            query_key=query_key,
+            country=country,
+            ttl=ttl,
+            cooldown_seconds=settings.rate_limit_cooldown_seconds,
+        )
+        message = summary.message
+        refresh_state = summary.refresh_state
+        cache_age_seconds = summary.cache_age_seconds
+        cooldown_seconds = summary.cooldown_seconds
+        quota_reset_date = summary.quota_reset_date
 
     saved = upsert_deals(db, fetched, source_query=query_key) if fetched else []
     alerts_sent = await _send_alerts(db, device_id, saved)
@@ -332,6 +455,10 @@ async def refresh_deals(
         "retry_after_seconds": retry_after,
         "message": message,
         "cache_hits": cache_hits,
+        "refresh_state": refresh_state,
+        "cache_age_seconds": cache_age_seconds,
+        "cooldown_seconds": cooldown_seconds,
+        "quota_reset_date": quota_reset_date,
     }
 
 

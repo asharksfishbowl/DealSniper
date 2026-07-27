@@ -29,33 +29,12 @@ KEYWORD_ALIASES: dict[str, list[str]] = {
     "tools": ["tool", "drill", "dewalt", "milwaukee"],
 }
 
-# Search-only expansions (broader / deal-oriented).
-# One API call per chip; prefer queries that surface discounted inventory.
-SEARCH_ALIASES: dict[str, list[str]] = {
-    "tv": ["tv deals"],
-    "laptop": ["laptop deals"],
-    "headphones": ["headphones deals"],
-    "tablet": ["tablet deals"],
-    "monitor": ["monitor deals"],
-    "phone": ["phone deals"],
-    "groceries": ["grocery deals"],
-    "vitamins": ["vitamins deals"],
-    "coffee": ["coffee deals"],
-    "vacuum": ["vacuum deals"],
-    "mattress": ["mattress deals"],
-    "tools": ["tools deals"],
-}
-
 # Home Depot is useless for pantry/food chips (returns carts/bags).
 SKIP_RETAILERS_FOR_KEYWORDS: dict[str, frozenset[str]] = {
     "homedepot": frozenset(
         {
-            "groceries",
-            "grocery",
             "grocery deals",
-            "coffee",
             "coffee deals",
-            "vitamins",
             "vitamins deals",
         }
     ),
@@ -64,7 +43,12 @@ SKIP_RETAILERS_FOR_KEYWORDS: dict[str, frozenset[str]] = {
 
 def search_term_for_keyword(keyword: str) -> str:
     key = keyword.lower().strip()
-    return SEARCH_ALIASES.get(key, [key])[0].strip().lower() or key
+    if key == "groceries":
+        # SEARCH_ALIASES used to map this to the singular "grocery deals" —
+        # every other keyword's plain "{key} deals" form matches its old
+        # SEARCH_ALIASES entry byte-for-byte, this is the one exception.
+        key = "grocery"
+    return f"{key} deals"
 
 
 def should_skip_retailer_for_query(retailer: str, query_key: str) -> bool:

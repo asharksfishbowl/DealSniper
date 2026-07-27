@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import json
 import logging
+import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, ClassVar, Optional
 
 import httpx
@@ -19,6 +23,9 @@ from adapters.base import (
 logger = logging.getLogger(__name__)
 
 OPENWEBNINJA_HOST = "https://api.openwebninja.com"
+
+# Same directory level as quota_state.json (backend/).
+_BENCHMARK_LOG_PATH = Path(__file__).resolve().parent.parent / "benchmark_log.jsonl"
 
 
 def dig(item: dict[str, Any], key: str) -> Any:
@@ -78,6 +85,9 @@ class OpenWebNinjaAdapter:
         self.timeout = timeout
         self.was_rate_limited = False
         self.was_quota_exhausted = False
+        self.had_error = False
+        # Set by refresh_deals() on each adapter instance before fetch_deals() runs.
+        self.cycle_id: Optional[str] = None
 
     @property
     def enabled(self) -> bool:
@@ -96,6 +106,21 @@ class OpenWebNinjaAdapter:
         if allowed is not None and country not in allowed:
             return "US" if "US" in allowed else sorted(allowed)[0]
         return country
+
+    def _log_benchmark(self, path: str, started: float, outcome: str) -> None:
+        entry = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "cycle_id": self.cycle_id,
+            "api_slug": self.api_slug,
+            "path": path,
+            "latency_ms": int((time.monotonic() - started) * 1000),
+            "outcome": outcome,
+        }
+        try:
+            with open(_BENCHMARK_LOG_PATH, "a") as f:
+                f.write(json.dumps(entry) + "\n")
+        except Exception as exc:
+            logger.warning("Failed to write benchmark log: %s", exc)
 
     async def _get(self, path: str, params: dict[str, Any]) -> Optional[Any]:
         if not self.enabled or self.was_rate_limited or self.was_quota_exhausted:
@@ -116,6 +141,8 @@ class OpenWebNinjaAdapter:
             return None
 
         url = f"{self._base_url}{path}"
+        quota.record_call(self.api_slug)
+        started = time.monotonic()
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 resp = await client.get(url, headers=self._headers(), params=params)
@@ -132,6 +159,7 @@ class OpenWebNinjaAdapter:
                         self.api_slug,
                         reason=f"HTTP {resp.status_code} on {path}",
                     )
+                    self._log_benchmark(path, started, "quota_exhausted")
                     return None
 
                 if resp.status_code == 429:
@@ -141,11 +169,19 @@ class OpenWebNinjaAdapter:
                         label,
                         path,
                     )
+                    self._log_benchmark(path, started, "rate_limited")
                     return None
                 resp.raise_for_status()
                 payload = body if isinstance(body, (dict, list)) else resp.json()
+        except httpx.TimeoutException as exc:
+            self.had_error = True
+            logger.warning("%s %s timed out: %s", label, path, exc)
+            self._log_benchmark(path, started, "timeout")
+            return None
         except Exception as exc:
+            self.had_error = True
             logger.warning("%s %s failed: %s", label, path, exc)
+            self._log_benchmark(path, started, "http_error")
             return None
 
         if isinstance(payload, dict) and payload.get("status") == "ERROR":
@@ -155,9 +191,13 @@ class OpenWebNinjaAdapter:
                     self.api_slug,
                     reason=str(payload.get("message") or payload.get("error") or "ERROR"),
                 )
+                self._log_benchmark(path, started, "quota_exhausted")
                 return None
+            self.had_error = True
             logger.warning("%s %s error payload: %s", label, path, payload)
+            self._log_benchmark(path, started, "http_error")
             return None
+        self._log_benchmark(path, started, "success")
         if isinstance(payload, dict):
             return payload.get("data", payload)
         return payload
