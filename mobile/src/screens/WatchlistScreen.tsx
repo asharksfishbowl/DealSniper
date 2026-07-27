@@ -1,6 +1,9 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
+  Animated,
+  Easing,
   FlatList,
   Pressable,
   RefreshControl,
@@ -17,9 +20,35 @@ import { fetchDeals, getApiBase, refreshDeals } from "../api";
 import { loadCart, toggleCartItem } from "../cart";
 import { DealRow } from "../components/DealRow";
 import { TickerTape } from "../components/TickerTape";
-import type { Deal } from "../types";
+import type { Deal, RefreshResult } from "../types";
 import { colors, fonts } from "../theme";
 import type { RootStackParamList } from "../navigation";
+
+// Arcade status-ticker line (specs/retro-arcade-ui/design-retro-arcade.md,
+// Requirements 13-19). refresh_state is additive/optional until the
+// refresh-state-contract backend work lands — falls back to "cached" with a
+// 0s age placeholder (Edge Case 2/4's own "null cache_age_seconds" case,
+// which the backend spec explicitly leaves to this frontend implementation).
+function tickerLineFor(result: RefreshResult | null): {
+  text: string;
+  color: string;
+  live: boolean;
+} {
+  const state = result?.refresh_state;
+  if (state === "quota_exhausted") {
+    const date = (result?.quota_reset_date ?? "SOON").toUpperCase();
+    return { text: `OUT OF CREDITS ◆ RESUME ${date}`, color: colors.red, live: false };
+  }
+  if (state === "rate_limited") {
+    const secs = result?.cooldown_seconds ?? 0;
+    return { text: `COOLDOWN ◆ RETRY ${secs}S`, color: colors.red, live: false };
+  }
+  if (state === "live") {
+    return { text: "LIVE FEED ◆ SCANNING...", color: colors.cyan, live: true };
+  }
+  const secs = result?.cache_age_seconds ?? 0;
+  return { text: `CACHED DATA ◆ ${secs}S AGO`, color: colors.magenta, live: false };
+}
 
 type Props = NativeStackScreenProps<RootStackParamList, "Watchlist"> & {
   deviceId: string;
@@ -33,6 +62,42 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [status, setStatus] = useState("");
+  const [refreshInfo, setRefreshInfo] = useState<RefreshResult | null>(null);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const blink = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduceMotion);
+    return () => sub.remove();
+  }, []);
+
+  const ticker = tickerLineFor(refreshInfo);
+
+  useEffect(() => {
+    if (!ticker.live || reduceMotion) {
+      blink.setValue(1);
+      return;
+    }
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(blink, {
+          toValue: 0.35,
+          duration: 500,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(blink, {
+          toValue: 1,
+          duration: 500,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [ticker.live, reduceMotion, blink]);
 
   const loadCartState = useCallback(async () => {
     const cart = await loadCart();
@@ -64,6 +129,7 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
     try {
       const result = await refreshDeals(deviceId, true);
       setStatus(result.message);
+      setRefreshInfo(result);
       await load();
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Refresh failed");
@@ -80,6 +146,7 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
 
   return (
     <View style={styles.screen}>
+      <View style={styles.crtOverlay} pointerEvents="none" />
       <View
         style={[
           styles.header,
@@ -114,6 +181,11 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
         </View>
       </View>
       <TickerTape deals={deals} />
+      <Animated.Text
+        style={[styles.tickerLine, { color: ticker.color, opacity: blink }]}
+      >
+        {ticker.text}
+      </Animated.Text>
       <View style={styles.boardHeader}>
         <Text style={styles.colSym}>SYMBOL</Text>
         <Text style={styles.colPx}>LAST / Δ</Text>
@@ -165,6 +237,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
+  // Static CRT scanline/vignette texture (Requirements 6-9,
+  // specs/retro-arcade-ui/design-retro-arcade.md). No flicker/jitter/roll.
+  crtOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 40,
+    backgroundColor: "rgba(0, 0, 0, 0.06)",
+  },
+  tickerLine: {
+    fontFamily: fonts.pixel,
+    fontSize: 9,
+    letterSpacing: 0.5,
+    lineHeight: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: colors.bgTape,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
   header: {
     paddingHorizontal: 16,
     flexDirection: "row",
@@ -176,10 +270,10 @@ const styles = StyleSheet.create({
   },
   brand: {
     color: colors.text,
-    fontFamily: fonts.brand,
-    fontSize: 48,
-    letterSpacing: 2,
-    lineHeight: 52,
+    fontFamily: fonts.pixel,
+    fontSize: 16,
+    letterSpacing: 1,
+    lineHeight: 22,
   },
   headerActions: {
     flexDirection: "row",
@@ -222,15 +316,15 @@ const styles = StyleSheet.create({
   },
   colSym: {
     color: colors.textDim,
-    fontFamily: fonts.mono,
-    fontSize: 13,
-    letterSpacing: 1.5,
+    fontFamily: fonts.pixel,
+    fontSize: 9,
+    letterSpacing: 0.5,
   },
   colPx: {
     color: colors.textDim,
-    fontFamily: fonts.mono,
-    fontSize: 13,
-    letterSpacing: 1.5,
+    fontFamily: fonts.pixel,
+    fontSize: 9,
+    letterSpacing: 0.5,
   },
   empty: {
     color: colors.textMuted,

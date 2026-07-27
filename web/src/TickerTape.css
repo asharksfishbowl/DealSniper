@@ -5,9 +5,9 @@
 }
 
 .tape-label {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.7rem;
-  letter-spacing: 0.22em;
+  font-family: "Press Start 2P", "IBM Plex Mono", monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
   color: #4a5c4e;
   padding: 0 1.25rem 0.35rem;
 }

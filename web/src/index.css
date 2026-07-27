@@ -2,6 +2,7 @@
 @import "@fontsource/ibm-plex-mono/400.css";
 @import "@fontsource/ibm-plex-mono/500.css";
 @import "@fontsource/ibm-plex-mono/700.css";
+@import "@fontsource/press-start-2p/400.css";
 
 :root {
   color-scheme: dark;
@@ -41,4 +42,26 @@ body.show-cursor a,
 body.show-cursor a.row-link,
 body.show-cursor a.hero-link {
   cursor: pointer;
+}
+
+/* Static CRT scanline + vignette texture for the kiosk board (Requirements
+   6-9, specs/retro-arcade-ui/design-retro-arcade.md). Sits above board
+   content but below the cart overlay (.cart-overlay is z-index: 50). Never
+   animates — no flicker/jitter/roll. */
+.crt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.07;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.9) 0px,
+      rgba(255, 255, 255, 0.9) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    radial-gradient(ellipse 120% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.9) 100%);
 }

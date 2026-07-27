@@ -1,4 +1,4 @@
-import type { Deal, Preferences } from "./types";
+import type { Deal, Preferences, RefreshResult } from "./types";
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") || "";
 
@@ -21,12 +21,7 @@ export function fetchDeals(deviceId: string) {
 }
 
 export function refreshDeals(deviceId: string, force = false) {
-  return request<{
-    message: string;
-    upserted: number;
-    skipped_external?: boolean;
-    retry_after_seconds?: number;
-  }>("/refresh", {
+  return request<RefreshResult>("/refresh", {
     method: "POST",
     body: JSON.stringify({ device_id: deviceId, force }),
   });

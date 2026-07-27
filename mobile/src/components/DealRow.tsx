@@ -39,7 +39,11 @@ export function DealRow({ deal, inCart = false, onPress, onToggleCart }: Props) 
           {deal.pct_off.toFixed(1)}%
         </Text>
         {deal.match_score != null ? (
-          <Text style={styles.score}>M {Math.round(deal.match_score)}</Text>
+          <Text
+            style={[styles.score, deal.match_score >= 90 && styles.scoreHighChip]}
+          >
+            M {Math.round(deal.match_score)}
+          </Text>
         ) : null}
         {onToggleCart ? (
           <Pressable
@@ -116,22 +120,40 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     minWidth: 98,
   },
+  // Solid backing chip on price/delta/score so the CRT overlay (WatchlistScreen)
+  // can never reduce their contrast (Requirement 8).
   price: {
     color: colors.text,
     fontFamily: fonts.monoMed,
     fontSize: 17,
+    backgroundColor: colors.bgElevated,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 2,
   },
   delta: {
     fontFamily: fonts.monoBold,
     fontSize: 16,
     marginTop: 2,
+    backgroundColor: colors.bgElevated,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 2,
   },
   score: {
     color: colors.textDim,
-    fontFamily: fonts.mono,
-    fontSize: 12,
+    fontFamily: fonts.monoBold,
+    fontSize: 15,
     marginTop: 2,
     letterSpacing: 1,
+    backgroundColor: colors.bgElevated,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 2,
+  },
+  scoreHighChip: {
+    borderWidth: 1,
+    borderColor: colors.cyan,
   },
   cartBtn: {
     borderColor: colors.green,

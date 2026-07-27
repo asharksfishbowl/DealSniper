@@ -28,6 +28,22 @@ export type Preferences = {
   alerts_enabled: boolean;
 };
 
+// refresh_state and its detail fields are additive keys added by the
+// refresh-state-contract backend work (specs/retro-arcade-ui/api-minimization-benchmarking.md)
+// — optional here since they're absent from older API responses.
+export type RefreshState = "live" | "cached" | "rate_limited" | "quota_exhausted";
+
+export type RefreshResult = {
+  message: string;
+  upserted: number;
+  skipped_external?: boolean;
+  retry_after_seconds?: number;
+  refresh_state?: RefreshState;
+  cache_age_seconds?: number | null;
+  cooldown_seconds?: number | null;
+  quota_reset_date?: string | null;
+};
+
 export const colors = {
   bg: "#0B0F0C",
   bgElevated: "#121916",
@@ -44,6 +60,8 @@ export const colors = {
   costco: "#4A9FD4",
   walmart: "#5B9BD5",
   homedepot: "#E07A3D",
+  cyan: "#4BD4D4",
+  magenta: "#C45BC4",
 };
 
 export const DEAL_TYPES = [

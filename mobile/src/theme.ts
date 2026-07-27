@@ -14,6 +14,8 @@ export const colors = {
   costco: "#4A9FD4",
   walmart: "#5B9BD5",
   homedepot: "#E07A3D",
+  cyan: "#4BD4D4",
+  magenta: "#C45BC4",
 };
 
 export const fonts = {
@@ -21,4 +23,5 @@ export const fonts = {
   mono: "IBMPlexMono_400Regular",
   monoMed: "IBMPlexMono_500Medium",
   monoBold: "IBMPlexMono_700Bold",
+  pixel: "PressStart2P_400Regular",
 };
