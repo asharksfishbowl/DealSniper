@@ -27,6 +27,10 @@ jobs:
       - run: npm ci
 
       - name: Queue EAS build
-        run: npx eas build --platform android --profile ${{ inputs.profile }} --non-interactive --no-wait
+        # "eas" is the CLI's binary name, but the npm package is "eas-cli" --
+        # bare `npx eas` can't resolve that mismatch and fails with
+        # "could not determine executable to run". Must invoke via the
+        # actual package name.
+        run: npx --yes eas-cli build --platform android --profile ${{ inputs.profile }} --non-interactive --no-wait
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
