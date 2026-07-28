@@ -10,6 +10,7 @@ import {
   IBMPlexMono_700Bold,
 } from "@expo-google-fonts/ibm-plex-mono";
 import { BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
+import { PressStart2P_400Regular } from "@expo-google-fonts/press-start-2p";
 
 import { registerDevice } from "./src/api";
 import { getOrCreateDeviceId } from "./src/device";
@@ -42,6 +43,7 @@ export default function App() {
     IBMPlexMono_500Medium,
     IBMPlexMono_700Bold,
     BebasNeue_400Regular,
+    PressStart2P_400Regular,
   });
 
   useEffect(() => {

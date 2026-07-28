@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 _STATE_PATH = Path(__file__).resolve().parent.parent / "quota_state.json"
 _exhausted_until: dict[str, datetime] = {}
+_call_counts: dict[str, dict[str, int]] = {}
 _loaded = False
 
 _QUOTA_HINTS = (
@@ -38,6 +39,11 @@ def next_month_start(now: datetime | None = None) -> datetime:
     return datetime(now.year, now.month + 1, 1, tzinfo=timezone.utc)
 
 
+def _current_month(now: datetime | None = None) -> str:
+    now = now or _now()
+    return now.strftime("%Y-%m")
+
+
 def _load() -> None:
     global _loaded
     if _loaded:
@@ -49,6 +55,8 @@ def _load() -> None:
         raw = json.loads(_STATE_PATH.read_text())
         for slug, iso in (raw.get("exhausted_until") or {}).items():
             _exhausted_until[slug] = datetime.fromisoformat(iso)
+        for slug, months in (raw.get("call_counts") or {}).items():
+            _call_counts[slug] = dict(months)
     except Exception as exc:
         logger.warning("Failed to load quota state: %s", exc)
 
@@ -57,7 +65,8 @@ def _save() -> None:
     payload = {
         "exhausted_until": {
             slug: until.isoformat() for slug, until in _exhausted_until.items()
-        }
+        },
+        "call_counts": _call_counts,
     }
     try:
         _STATE_PATH.write_text(json.dumps(payload, indent=2))
@@ -101,6 +110,21 @@ def mark_quota_exhausted(api_slug: str, *, reason: str = "") -> datetime:
             until.date().isoformat(),
         )
     return until
+
+
+def record_call(api_slug: str) -> None:
+    """Increment the current UTC month's call counter for this API product."""
+    _load()
+    month = _current_month()
+    months = _call_counts.setdefault(api_slug, {})
+    months[month] = months.get(month, 0) + 1
+    _save()
+
+
+def get_call_count(api_slug: str, month: str | None = None) -> int:
+    _load()
+    month = month or _current_month()
+    return _call_counts.get(api_slug, {}).get(month, 0)
 
 
 def response_looks_like_quota(

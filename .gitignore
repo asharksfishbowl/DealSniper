@@ -10,4 +10,5 @@ node_modules/
 dist/
 *.log
 quota_state.json
+benchmark_log.jsonl
 mobile/expo-go-qr.png

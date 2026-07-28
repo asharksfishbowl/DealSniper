@@ -6,7 +6,7 @@ import { getKioskDeviceId } from "./device";
 import { formatRating, formatReviews } from "./format";
 import { PreferencesPanel } from "./PreferencesPanel";
 import { TickerTape } from "./TickerTape";
-import type { Deal } from "./types";
+import type { Deal, RefreshResult } from "./types";
 import { colors } from "./types";
 import "./App.css";
 
@@ -32,6 +32,32 @@ function dealHref(deal: Deal): string | undefined {
   return deal.url || undefined;
 }
 
+// Arcade status-ticker line (specs/retro-arcade-ui/design-retro-arcade.md,
+// Requirements 13-19). refresh_state is additive/optional until the
+// refresh-state-contract backend work lands — falls back to "cached" with a
+// 0s age placeholder (Edge Case 2/4's own "null cache_age_seconds" case,
+// which the backend spec explicitly leaves to this frontend implementation).
+function tickerLineFor(result: RefreshResult | null): {
+  text: string;
+  color: string;
+  state: string;
+} {
+  const state = result?.refresh_state;
+  if (state === "quota_exhausted") {
+    const date = (result?.quota_reset_date ?? "SOON").toUpperCase();
+    return { text: `OUT OF CREDITS ◆ RESUME ${date}`, color: colors.red, state: "quota" };
+  }
+  if (state === "rate_limited") {
+    const secs = result?.cooldown_seconds ?? 0;
+    return { text: `COOLDOWN ◆ RETRY ${secs}S`, color: colors.red, state: "cooldown" };
+  }
+  if (state === "live") {
+    return { text: "LIVE FEED ◆ SCANNING...", color: colors.cyan, state: "live" };
+  }
+  const secs = result?.cache_age_seconds ?? 0;
+  return { text: `CACHED DATA ◆ ${secs}S AGO`, color: colors.magenta, state: "cached" };
+}
+
 export default function App() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [status, setStatus] = useState("connecting…");
@@ -40,6 +66,7 @@ export default function App() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [cart, setCart] = useState<Deal[]>(loadCart);
+  const [refreshInfo, setRefreshInfo] = useState<RefreshResult | null>(null);
   const deviceId = getKioskDeviceId();
 
   const updateCart = (next: Deal[]) => {
@@ -72,6 +99,7 @@ export default function App() {
     try {
       const result = await refreshDeals(deviceId, force);
       setStatus(result.message);
+      setRefreshInfo(result);
     } catch {
       // still reload cache
     }
@@ -116,9 +144,11 @@ export default function App() {
   }, [cycleLive, filtersOpen]);
 
   const top = deals[0];
+  const ticker = tickerLineFor(refreshInfo);
 
   return (
     <div className="kiosk">
+      <div className="crt-overlay" aria-hidden="true" />
       <header className="topbar">
         <div>
           <h1 className="brand">DEALSNIPER</h1>
@@ -207,6 +237,10 @@ export default function App() {
         })()
       ) : null}
 
+      <div className={`ticker-line state-${ticker.state}`} style={{ color: ticker.color }}>
+        {ticker.text}
+      </div>
+
       <div className="board-head">
         <span>SYMBOL</span>
         <span>NAME</span>
@@ -249,7 +283,11 @@ export default function App() {
                 {deal.pct_off > 0 ? "+" : ""}
                 {deal.pct_off.toFixed(1)}%
               </span>
-              <span className="match">{Math.round(deal.match_score ?? 0)}</span>
+              <span
+                className={`match ${(deal.match_score ?? 0) >= 90 ? "high-score" : ""}`}
+              >
+                {Math.round(deal.match_score ?? 0)}
+              </span>
               <button
                 type="button"
                 className={`cart-add ${inCart ? "added" : ""}`}
