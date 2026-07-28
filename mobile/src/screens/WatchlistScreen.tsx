@@ -191,7 +191,9 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
         <Text style={styles.colPx}>LAST / Δ</Text>
       </View>
       {loading ? (
-        <ActivityIndicator color={colors.green} style={{ marginTop: 40 }} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator color={colors.green} size="large" />
+        </View>
       ) : (
         <FlatList
           data={deals}
@@ -236,6 +238,11 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   // Static CRT scanline/vignette texture (Requirements 6-9,
   // specs/retro-arcade-ui/design-retro-arcade.md). No flicker/jitter/roll.
