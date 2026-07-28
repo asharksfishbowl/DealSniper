@@ -1,0 +1,25 @@
+name: Create production builds
+
+on:
+  # workflow_dispatch-only is deliberate: production builds must be human-
+  # triggered, not fired automatically on merge to main like the dev/preview
+  # workflows. Don't "fix" this to match those two files.
+  workflow_dispatch: {}
+
+jobs:
+  # submit.production already exists in mobile/eas.json, but a `type: submit`
+  # step is deliberately NOT included here — app store submission is a
+  # separate, higher-stakes step for the user to wire in explicitly later.
+  android_production_build:
+    name: Build Android production
+    type: build
+    params:
+      platform: android
+      profile: production
+
+  ios_production_build:
+    name: Build iOS production
+    type: build
+    params:
+      platform: ios
+      profile: production
