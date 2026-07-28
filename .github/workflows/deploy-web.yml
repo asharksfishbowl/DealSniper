@@ -1,17 +1,14 @@
-name: Deploy backend
+name: Deploy web
 
 on:
   push:
     branches: ["main"]
     paths:
-      - "backend/**"
+      - "web/**"
   workflow_dispatch: {}
 
-env:
-  IMAGE_NAME: ghcr.io/asharksfishbowl/dealsniper-backend
-
 jobs:
-  build-and-push:
+  deploy-web:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -30,6 +27,6 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
-          context: ./backend
+          context: ./web
           push: true
-          tags: ${{ env.IMAGE_NAME }}:latest
+          tags: ghcr.io/asharksfishbowl/dealsniper-web:latest
