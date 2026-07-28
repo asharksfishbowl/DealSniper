@@ -19,7 +19,6 @@
     },
     "android": {
       "package": "com.dealsniper.app",
-      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#0B0F0C",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -39,6 +38,14 @@
         "expo-notifications",
         {
           "color": "#2EE56A"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
         }
       ]
     ],
