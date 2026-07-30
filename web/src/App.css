@@ -50,6 +50,9 @@
 }
 
 .ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.72rem;
   letter-spacing: 0.14em;
@@ -58,6 +61,11 @@
   border: 1px solid #1e2a22;
   padding: 0.55rem 0.8rem;
   cursor: pointer;
+}
+
+.ghost svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 .ghost:hover {

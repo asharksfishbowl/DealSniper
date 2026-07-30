@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { IoCartOutline, IoOptionsOutline, IoRefreshOutline } from "react-icons/io5";
 import { fetchDeals, getApiBase, refreshDeals, registerDevice } from "./api";
 import { loadCart, saveCart } from "./cart";
 import { CartPanel } from "./CartPanel";
@@ -157,13 +158,16 @@ export default function App() {
         <div className="topbar-right">
           <div className="clock">{formatClock(now)}</div>
           <button type="button" className="ghost" onClick={() => setFiltersOpen(true)}>
-            FILTERS
+            <IoOptionsOutline aria-hidden="true" />
+            <span className="ghost-label">FILTERS</span>
           </button>
           <button type="button" className="ghost cart-top" onClick={() => setCartOpen(true)}>
-            CART <span>{cart.length}</span>
+            <IoCartOutline aria-hidden="true" />
+            <span className="ghost-label">CART</span> <span>{cart.length}</span>
           </button>
           <button type="button" className="ghost" onClick={() => cycleLive(true)}>
-            REFRESH
+            <IoRefreshOutline aria-hidden="true" />
+            <span className="ghost-label">REFRESH</span>
           </button>
           <button
             type="button"
