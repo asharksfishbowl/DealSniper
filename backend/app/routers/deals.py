@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from adapters.base import clean_title
+from app.affiliate import apply_affiliate_tag
 from app.bootstrap import is_demo_deal
+from app.config import get_settings
 from app.database import get_db
 from app.matcher import score_deal
 from app.models import Deal, Preference
@@ -18,6 +20,8 @@ def _deal_out(deal: Deal, match: float) -> DealOut:
     out.title = clean_title(deal.title)
     out.match_score = match
     out.is_demo = is_demo_deal(deal.retailer, deal.external_id)
+    if out.url:
+        out.url = apply_affiliate_tag(deal.retailer, out.url, get_settings())
     return out
 
 

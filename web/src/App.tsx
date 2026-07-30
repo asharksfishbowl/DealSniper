@@ -306,6 +306,7 @@ export default function App() {
       <footer className="status">
         <span>{status}</span>
         <span>P filters · F fullscreen · R refresh</span>
+        <span>Some links may earn us a commission</span>
       </footer>
 
       <PreferencesPanel
