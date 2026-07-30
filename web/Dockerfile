@@ -11,7 +11,13 @@ FROM nginx:1.27-alpine
 # API_UPSTREAM app setting in any environment where "api" isn't resolvable
 # (e.g. Azure), see web/nginx.conf.template.
 ENV API_UPSTREAM=http://api:8000
-COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+# Deliberately NOT copied into /etc/nginx/templates/ — that directory
+# triggers nginx's built-in auto-envsubst, which substitutes against the
+# full container environment rather than just this one variable. Rendered
+# explicitly instead via docker-entrypoint-render.sh.
+COPY nginx.conf.template /etc/nginx/conf.d/default.conf.template
+COPY docker-entrypoint-render.sh /docker-entrypoint.d/50-render-nginx-conf.sh
+RUN chmod +x /docker-entrypoint.d/50-render-nginx-conf.sh
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
