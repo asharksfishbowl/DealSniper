@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     openwebninja_api_key: str = ""
+    amazon_affiliate_tag: str = ""
+    walmart_affiliate_id: str = ""
+    homedepot_affiliate_id: str = ""
     database_url: str = "sqlite:///./dealsniper.db"
     match_alert_threshold: int = 70
     cors_origins: str = "*"

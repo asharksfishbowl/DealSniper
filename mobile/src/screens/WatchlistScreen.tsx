@@ -229,6 +229,7 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
         <Text style={styles.footerText} numberOfLines={2}>
           {status || " "}
         </Text>
+        <Text style={styles.disclosureText}>Some links may earn us a commission</Text>
       </View>
     </View>
   );
@@ -352,5 +353,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.mono,
     fontSize: 14,
     lineHeight: 19,
+  },
+  disclosureText: {
+    color: colors.textMuted,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    lineHeight: 14,
+    paddingTop: 2,
   },
 });
