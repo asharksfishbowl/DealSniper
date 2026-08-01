@@ -57,6 +57,7 @@
   background: transparent;
   border: 1px solid #1e2a22;
   padding: 0.55rem 0.8rem;
+  min-height: 2.75rem;
   cursor: pointer;
 }
 
@@ -537,5 +538,64 @@ a.hero-quote.hero-link:hover {
   .topbar {
     flex-wrap: wrap;
     gap: 0.75rem;
+  }
+}
+
+/* Phone-width board: a 5-fixed-column grid structurally cannot fit a
+   flexible name field in ~360-430px, so restack each row into a 3-line
+   card via grid-area — no App.tsx DOM changes needed, grid-area placement
+   is independent of source order. */
+@media (max-width: 480px) {
+  .board-head {
+    display: none;
+  }
+
+  .row {
+    grid-template-columns: 1fr auto auto;
+    grid-template-areas:
+      "sym px delta"
+      "name name name"
+      "rating match cart";
+    row-gap: 0.35rem;
+    column-gap: 0.5rem;
+    min-height: 0;
+  }
+
+  .sym {
+    grid-area: sym;
+  }
+
+  .px {
+    grid-area: px;
+  }
+
+  .delta {
+    grid-area: delta;
+    justify-self: end;
+  }
+
+  .name {
+    grid-area: name;
+  }
+
+  .rating {
+    grid-area: rating;
+    justify-self: start;
+    display: inline-block;
+  }
+
+  .match {
+    grid-area: match;
+    justify-self: start;
+    display: inline-block;
+  }
+
+  .cart-add {
+    grid-area: cart;
+    justify-self: end;
+  }
+
+  .clock {
+    white-space: nowrap;
   }
 }
