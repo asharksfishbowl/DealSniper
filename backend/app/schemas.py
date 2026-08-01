@@ -72,5 +72,9 @@ class RefreshOut(BaseModel):
     retry_after_seconds: int = 0
     message: str = "ok"
     cache_hits: list[str] = Field(default_factory=list)
+    refresh_state: str = "cached"
+    cache_age_seconds: Optional[int] = None
+    cooldown_seconds: Optional[int] = None
+    quota_reset_date: Optional[str] = None
 
     model_config = {"extra": "ignore"}
