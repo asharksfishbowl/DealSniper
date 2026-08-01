@@ -30,3 +30,13 @@ jobs:
           context: ./web
           push: true
           tags: ghcr.io/asharksfishbowl/dealsniper-web:latest
+
+      - name: Trigger Azure redeploy
+        # Azure Web App for Containers doesn't auto-pull a new "latest"
+        # image on its own -- this hits the site's docker CD webhook
+        # (Kudu publish credentials, not the ARM API) so it pulls and
+        # restarts with the image just pushed above.
+        run: |
+          curl -fsS -X POST \
+            -u "${{ secrets.AZURE_WEB_KUDU_USER }}:${{ secrets.AZURE_WEB_KUDU_PASS }}" \
+            https://dealsniper-web.scm.azurewebsites.net/docker/hook
