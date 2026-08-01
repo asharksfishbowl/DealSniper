@@ -39,7 +39,19 @@ jobs:
         # image on its own -- this hits the site's docker CD webhook
         # (Kudu publish credentials, not the ARM API) so it pulls and
         # restarts with the image just pushed above.
+        #
+        # Credentials go through env:, NOT ${{ }} interpolated directly
+        # into the quoted -u string -- the Kudu username is literally
+        # "$dealsniper-api" (a leading $), and ${{ }} does raw text
+        # substitution before bash parses the line, so bash would then
+        # try to expand "$dealsniper" as an (undefined, empty) shell
+        # variable inside the double quotes, mangling the username.
+        # Referencing an already-set env var's contents doesn't trigger
+        # that re-expansion.
         run: |
           curl -fsS -X POST \
-            -u "${{ secrets.AZURE_API_KUDU_USER }}:${{ secrets.AZURE_API_KUDU_PASS }}" \
+            -u "${AZURE_API_KUDU_USER}:${AZURE_API_KUDU_PASS}" \
             https://dealsniper-api.scm.azurewebsites.net/docker/hook
+        env:
+          AZURE_API_KUDU_USER: ${{ secrets.AZURE_API_KUDU_USER }}
+          AZURE_API_KUDU_PASS: ${{ secrets.AZURE_API_KUDU_PASS }}
