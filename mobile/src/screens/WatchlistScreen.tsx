@@ -37,17 +37,17 @@ function tickerLineFor(result: RefreshResult | null): {
   const state = result?.refresh_state;
   if (state === "quota_exhausted") {
     const date = (result?.quota_reset_date ?? "SOON").toUpperCase();
-    return { text: `OUT OF CREDITS ◆ RESUME ${date}`, color: colors.red, live: false };
+    return { text: `OUT OF CREDITS · RESUME ${date}`, color: colors.red, live: false };
   }
   if (state === "rate_limited") {
     const secs = result?.cooldown_seconds ?? 0;
-    return { text: `COOLDOWN ◆ RETRY ${secs}S`, color: colors.red, live: false };
+    return { text: `COOLDOWN · RETRY ${secs}S`, color: colors.red, live: false };
   }
   if (state === "live") {
-    return { text: "LIVE FEED ◆ SCANNING...", color: colors.cyan, live: true };
+    return { text: "LIVE FEED · SCANNING...", color: colors.cyan, live: true };
   }
   const secs = result?.cache_age_seconds ?? 0;
-  return { text: `CACHED DATA ◆ ${secs}S AGO`, color: colors.magenta, live: false };
+  return { text: `CACHED DATA · ${secs}S AGO`, color: colors.magenta, live: false };
 }
 
 type Props = NativeStackScreenProps<RootStackParamList, "Watchlist"> & {
@@ -188,7 +188,7 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
       </Animated.Text>
       <View style={styles.boardHeader}>
         <Text style={styles.colSym}>SYMBOL</Text>
-        <Text style={styles.colPx}>LAST / Δ</Text>
+        <Text style={styles.colPx}>LAST / CHG</Text>
       </View>
       {loading ? (
         <View style={styles.loadingContainer}>

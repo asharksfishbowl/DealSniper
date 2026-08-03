@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { IoCartOutline, IoOptionsOutline, IoRefreshOutline } from "react-icons/io5";
+import { IoCartOutline, IoExpandOutline, IoOptionsOutline, IoRefreshOutline } from "react-icons/io5";
+import { FaArrowUpRightFromSquare, FaStar } from "react-icons/fa6";
 import { fetchDeals, getApiBase, refreshDeals, registerDevice } from "./api";
 import { loadCart, saveCart } from "./cart";
 import { CartPanel } from "./CartPanel";
@@ -46,17 +47,17 @@ function tickerLineFor(result: RefreshResult | null): {
   const state = result?.refresh_state;
   if (state === "quota_exhausted") {
     const date = (result?.quota_reset_date ?? "SOON").toUpperCase();
-    return { text: `OUT OF CREDITS ◆ RESUME ${date}`, color: colors.red, state: "quota" };
+    return { text: `OUT OF CREDITS · RESUME ${date}`, color: colors.red, state: "quota" };
   }
   if (state === "rate_limited") {
     const secs = result?.cooldown_seconds ?? 0;
-    return { text: `COOLDOWN ◆ RETRY ${secs}S`, color: colors.red, state: "cooldown" };
+    return { text: `COOLDOWN · RETRY ${secs}S`, color: colors.red, state: "cooldown" };
   }
   if (state === "live") {
-    return { text: "LIVE FEED ◆ SCANNING...", color: colors.cyan, state: "live" };
+    return { text: "LIVE FEED · SCANNING...", color: colors.cyan, state: "live" };
   }
   const secs = result?.cache_age_seconds ?? 0;
-  return { text: `CACHED DATA ◆ ${secs}S AGO`, color: colors.magenta, state: "cached" };
+  return { text: `CACHED DATA · ${secs}S AGO`, color: colors.magenta, state: "cached" };
 }
 
 export default function App() {
@@ -157,24 +158,42 @@ export default function App() {
         </div>
         <div className="topbar-right">
           <div className="clock">{formatClock(now)}</div>
-          <button type="button" className="ghost" onClick={() => setFiltersOpen(true)}>
+          <button
+            type="button"
+            className="ghost"
+            aria-label="Filters"
+            title="Filters"
+            onClick={() => setFiltersOpen(true)}
+          >
             <IoOptionsOutline aria-hidden="true" />
-            <span className="ghost-label">FILTERS</span>
           </button>
-          <button type="button" className="ghost cart-top" onClick={() => setCartOpen(true)}>
+          <button
+            type="button"
+            className="ghost cart-top"
+            aria-label={`Cart, ${cart.length} item${cart.length === 1 ? "" : "s"}`}
+            title="Cart"
+            onClick={() => setCartOpen(true)}
+          >
             <IoCartOutline aria-hidden="true" />
-            <span className="ghost-label">CART</span> <span>{cart.length}</span>
-          </button>
-          <button type="button" className="ghost" onClick={() => cycleLive(true)}>
-            <IoRefreshOutline aria-hidden="true" />
-            <span className="ghost-label">REFRESH</span>
+            <span>{cart.length}</span>
           </button>
           <button
             type="button"
             className="ghost"
+            aria-label="Refresh"
+            title="Refresh"
+            onClick={() => cycleLive(true)}
+          >
+            <IoRefreshOutline aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="ghost"
+            aria-label="Fullscreen"
+            title="Fullscreen"
             onClick={() => document.documentElement.requestFullscreen?.()}
           >
-            FULLSCREEN
+            <IoExpandOutline aria-hidden="true" />
           </button>
         </div>
       </header>
@@ -193,7 +212,11 @@ export default function App() {
                 {top.is_demo ? (
                   <span className="demo-banner">DEMO DATA · PRICES ARE NOT LIVE</span>
                 ) : null}
-                {href ? <span className="hero-open">OPEN ↗</span> : null}
+                {href ? (
+                  <span className="hero-open">
+                    OPEN <FaArrowUpRightFromSquare aria-hidden="true" />
+                  </span>
+                ) : null}
               </div>
               <p className="hero-title">{top.title}</p>
               <div className="hero-numbers">
@@ -202,7 +225,7 @@ export default function App() {
                   <div className="num-value">${top.price.toFixed(2)}</div>
                 </div>
                 <div>
-                  <div className="num-label">Δ%</div>
+                  <div className="num-label">CHG%</div>
                   <div className="num-value" style={{ color: deltaColor(top.pct_off) }}>
                     {top.pct_off > 0 ? "+" : ""}
                     {top.pct_off.toFixed(1)}%
@@ -212,7 +235,11 @@ export default function App() {
                   <div className="num-label">RATING</div>
                   <div className="num-value num-rating">
                     {top.rating != null ? top.rating.toFixed(1) : "—"}
-                    {top.rating != null ? <span className="star">★</span> : null}
+                    {top.rating != null ? (
+                      <span className="star">
+                        <FaStar aria-hidden="true" />
+                      </span>
+                    ) : null}
                   </div>
                   {top.review_count != null ? (
                     <div className="num-sub">{formatReviews(top.review_count)} reviews</div>
@@ -250,7 +277,7 @@ export default function App() {
         <span>NAME</span>
         <span>RATING</span>
         <span>LAST</span>
-        <span>Δ%</span>
+        <span>CHG%</span>
         <span>MATCH</span>
         <span>CART</span>
       </div>

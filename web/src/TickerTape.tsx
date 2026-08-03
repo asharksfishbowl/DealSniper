@@ -12,7 +12,7 @@ export function TickerTape({ deals }: Props) {
   const items = hot.length ? hot : deals.slice(0, 12);
   const line = items
     .map((d) => {
-      const rating = d.rating != null ? `  ${d.rating.toFixed(1)}★` : "";
+      const rating = d.rating != null ? `  ${d.rating.toFixed(1)}` : "";
       return `${d.ticker}  ${d.pct_off >= 0 ? "+" : ""}${d.pct_off.toFixed(1)}%  $${d.price.toFixed(2)}${rating}`;
     })
     .join("     ·     ");
