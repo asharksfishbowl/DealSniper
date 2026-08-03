@@ -11,5 +11,5 @@ export function formatRating(rating?: number | null, reviewCount?: number | null
   if (rating == null) return "—";
   const stars = rating.toFixed(1);
   const reviews = formatReviews(reviewCount);
-  return reviews ? `${stars}★ · ${reviews}` : `${stars}★`;
+  return reviews ? `${stars} · ${reviews}` : stars;
 }
