@@ -22,10 +22,16 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://dealsniper-api.azurewebsites.net"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://dealsniper-api.azurewebsites.net"
+      }
     }
   },
   "submit": {
