@@ -58,6 +58,16 @@
   gap: 0.75rem;
 }
 
+/* Groups Filters/Refresh/Fullscreen + Cart + Menu into one cluster so
+   .topbar-right has exactly two children (clock, this). That's what lets
+   the <=900px override below push the clock and this cluster to opposite
+   ends of the wrapped line instead of them drifting together as one blob. */
+.topbar-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .clock {
   font-family: "IBM Plex Mono", monospace;
   font-weight: 700;
@@ -575,6 +585,19 @@ a.hero-quote.hero-link:hover {
   .topbar {
     flex-wrap: wrap;
     gap: 0.75rem;
+  }
+
+  /* Once .topbar wraps, .topbar-right becomes the sole item on its own
+     line and margin-left: auto (above) only pins the whole clock+buttons
+     box to that line's end -- it doesn't separate the clock from the
+     buttons within it. Spanning the full line width and switching to
+     space-between here pushes the clock flush left and the buttons
+     cluster flush right, using the actual width now available instead of
+     just the box's own content width. */
+  .topbar-right {
+    width: 100%;
+    justify-content: space-between;
+    margin-left: 0;
   }
 }
 
