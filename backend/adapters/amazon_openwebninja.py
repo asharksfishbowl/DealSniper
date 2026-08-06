@@ -55,13 +55,27 @@ class AmazonOpenWebNinjaAdapter(OpenWebNinjaAdapter):
         # a 400 Bad Request on exactly this param combo, every time, since this
         # adapter was written. Dropped both rather than guess a replacement value
         # we can't verify; the API's own defaults apply.
-        data = await self._get(
-            "/search",
-            {
-                "query": queries[0],
-                "country": country,
-                "page": 1,
-            },
-        )
-        self._collect(data, country, seen, deals)
+        #
+        # RELEVANCE-sorted page 1 alone tends to miss higher-discount items ranked
+        # lower for the query term, so pull additional pages up to the configured
+        # cap -- stopping as soon as a page adds no new products (either the
+        # result set is exhausted, or _get() hit an error/quota/rate-limit and
+        # returned None, in which case _get()'s own guard makes every further
+        # page in this loop a free no-op rather than another live call).
+        from app.config import get_settings
+
+        max_pages = get_settings().amazon_search_max_pages
+        for page in range(1, max_pages + 1):
+            data = await self._get(
+                "/search",
+                {
+                    "query": queries[0],
+                    "country": country,
+                    "page": page,
+                },
+            )
+            before = len(deals)
+            self._collect(data, country, seen, deals)
+            if len(deals) == before:
+                break
         return deals
