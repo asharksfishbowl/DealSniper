@@ -38,6 +38,13 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  /* .topbar goes flex-wrap at <=900px (below), and when topbar-right ends up
+     alone on its own wrapped line, justify-content: space-between on the
+     parent has nothing to distribute against -- a lone flex item just sits
+     at the line start instead of the far edge. margin-left: auto pins it to
+     the end of whichever line it's on regardless of wrapping, so it stays
+     right-aligned instead of floating after the brand text. */
+  margin-left: auto;
 }
 
 /* Preserves the pre-hamburger spacing between the 4 action buttons now
@@ -680,17 +687,5 @@ a.hero-quote.hero-link:hover {
 
   .topbar-menu button:hover {
     background: #122016;
-  }
-
-  .menu-badge {
-    position: absolute;
-    top: -0.3rem;
-    right: -0.3rem;
-    min-width: 1.1em;
-    padding: 0.05rem 0.25rem;
-    font-size: 0.65rem;
-    background: #2ee56a;
-    color: #0b0f0c;
-    border-radius: 999px;
   }
 }
