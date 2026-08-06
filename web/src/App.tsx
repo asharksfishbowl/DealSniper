@@ -172,57 +172,64 @@ export default function App() {
         </div>
         <div className="topbar-right">
           <div className="clock">{formatClock(now)}</div>
-          <div className="topbar-actions">
+          {/* Grouped so .topbar-right has exactly two children (clock,
+              buttons) -- lets space-between push the clock flush left and
+              this whole cluster flush right on its own line once .topbar
+              wraps at phone widths, instead of the clock and buttons
+              drifting together as one blob. */}
+          <div className="topbar-buttons">
+            <div className="topbar-actions">
+              <button
+                type="button"
+                className="ghost"
+                aria-label="Filters"
+                title="Filters"
+                onClick={() => setFiltersOpen(true)}
+              >
+                <IoOptionsOutline aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="ghost"
+                aria-label="Refresh"
+                title="Refresh"
+                onClick={() => cycleLive(true)}
+              >
+                <IoRefreshOutline aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="ghost"
+                aria-label="Fullscreen"
+                title="Fullscreen"
+                onClick={toggleFullscreen}
+              >
+                <IoExpandOutline aria-hidden="true" />
+              </button>
+            </div>
+            {/* Cart stays outside the hamburger at every width -- it's the
+                one action a phone-width kiosk user reaches for constantly,
+                unlike Filters/Refresh/Fullscreen which are occasional. */}
             <button
               type="button"
-              className="ghost"
-              aria-label="Filters"
-              title="Filters"
-              onClick={() => setFiltersOpen(true)}
+              className="ghost cart-top"
+              aria-label={`Cart, ${cart.length} item${cart.length === 1 ? "" : "s"}`}
+              title="Cart"
+              onClick={() => setCartOpen(true)}
             >
-              <IoOptionsOutline aria-hidden="true" />
+              <IoCartOutline aria-hidden="true" />
+              <span>{cart.length}</span>
             </button>
             <button
               type="button"
-              className="ghost"
-              aria-label="Refresh"
-              title="Refresh"
-              onClick={() => cycleLive(true)}
+              className="ghost topbar-menu-btn"
+              aria-label="Menu"
+              title="Menu"
+              onClick={() => setMenuOpen((v) => !v)}
             >
-              <IoRefreshOutline aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="ghost"
-              aria-label="Fullscreen"
-              title="Fullscreen"
-              onClick={toggleFullscreen}
-            >
-              <IoExpandOutline aria-hidden="true" />
+              <IoMenuOutline aria-hidden="true" />
             </button>
           </div>
-          {/* Cart stays outside the hamburger at every width -- it's the one
-              action a phone-width kiosk user reaches for constantly, unlike
-              Filters/Refresh/Fullscreen which are occasional. */}
-          <button
-            type="button"
-            className="ghost cart-top"
-            aria-label={`Cart, ${cart.length} item${cart.length === 1 ? "" : "s"}`}
-            title="Cart"
-            onClick={() => setCartOpen(true)}
-          >
-            <IoCartOutline aria-hidden="true" />
-            <span>{cart.length}</span>
-          </button>
-          <button
-            type="button"
-            className="ghost topbar-menu-btn"
-            aria-label="Menu"
-            title="Menu"
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            <IoMenuOutline aria-hidden="true" />
-          </button>
         </div>
       </header>
 
