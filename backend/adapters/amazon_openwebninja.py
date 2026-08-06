@@ -76,6 +76,19 @@ class AmazonOpenWebNinjaAdapter(OpenWebNinjaAdapter):
             )
             before = len(deals)
             self._collect(data, country, seen, deals)
-            if len(deals) == before:
+            new_this_page = deals[before:]
+            # Visible, first-party proof each page is a distinct batch of
+            # results (not the same data re-fetched) -- logs the actual new
+            # product titles this page added, so this is checkable directly
+            # in the log stream rather than taken on faith.
+            logger.info(
+                "Amazon /search page %s for '%s': +%s new products (running total %s)%s",
+                page,
+                queries[0],
+                len(new_this_page),
+                len(deals),
+                ": " + "; ".join(d.title[:40] for d in new_this_page[:3]) if new_this_page else "",
+            )
+            if not new_this_page:
                 break
         return deals
