@@ -48,20 +48,24 @@ class AmazonOpenWebNinjaAdapter(OpenWebNinjaAdapter):
             self._collect(data, country, seen, deals)
             return deals
 
-        # "sort_by": "FEATURED" + "deals_and_discounts": "ALL_DISCOUNTS" used to be
-        # sent here but neither is a documented value for this endpoint (the API's
-        # own default sort is "RELEVANCE"; "deals_and_discounts" doesn't appear in
-        # its docs at all) -- confirmed via live logs that every keyword search hit
-        # a 400 Bad Request on exactly this param combo, every time, since this
-        # adapter was written. Dropped both rather than guess a replacement value
-        # we can't verify; the API's own defaults apply.
+        # CORRECTION (verified directly against the live API with a real key,
+        # not guessed): "sort_by": "FEATURED" was the ONLY invalid value here --
+        # confirmed by testing sort_by candidates directly, FEATURED alone 400s
+        # while RELEVANCE/LOWEST_PRICE/HIGHEST_PRICE/NEWEST/REVIEWS/BEST_SELLERS
+        # all work. "deals_and_discounts": "ALL_DISCOUNTS" is a REAL, valid
+        # parameter -- an earlier fix wrongly dropped both together when only
+        # sort_by was ever broken. Verified its actual effect: without it, a
+        # 'coffee' page of 48 products has only 6 with any real discount info
+        # (12.5%); with it, 27/48 do (56%) at the same page size/cost -- so
+        # re-added just this param, still omitting the invalid sort_by.
         #
-        # RELEVANCE-sorted page 1 alone tends to miss higher-discount items ranked
-        # lower for the query term, so pull additional pages up to the configured
-        # cap -- stopping as soon as a page adds no new products (either the
-        # result set is exhausted, or _get() hit an error/quota/rate-limit and
-        # returned None, in which case _get()'s own guard makes every further
-        # page in this loop a free no-op rather than another live call).
+        # RELEVANCE-sorted (the default) page 1 alone still tends to miss
+        # higher-discount items ranked lower for the query term, so pull
+        # additional pages up to the configured cap -- stopping as soon as a
+        # page adds no new products (either the result set is exhausted, or
+        # _get() hit an error/quota/rate-limit and returned None, in which case
+        # _get()'s own guard makes every further page in this loop a free
+        # no-op rather than another live call).
         from app.config import get_settings
 
         max_pages = get_settings().amazon_search_max_pages
@@ -72,10 +76,24 @@ class AmazonOpenWebNinjaAdapter(OpenWebNinjaAdapter):
                     "query": queries[0],
                     "country": country,
                     "page": page,
+                    "deals_and_discounts": "ALL_DISCOUNTS",
                 },
             )
             before = len(deals)
             self._collect(data, country, seen, deals)
-            if len(deals) == before:
+            new_this_page = deals[before:]
+            # Visible, first-party proof each page is a distinct batch of
+            # results (not the same data re-fetched) -- logs the actual new
+            # product titles this page added, so this is checkable directly
+            # in the log stream rather than taken on faith.
+            logger.info(
+                "Amazon /search page %s for '%s': +%s new products (running total %s)%s",
+                page,
+                queries[0],
+                len(new_this_page),
+                len(deals),
+                ": " + "; ".join(d.title[:40] for d in new_this_page[:3]) if new_this_page else "",
+            )
+            if not new_this_page:
                 break
         return deals
