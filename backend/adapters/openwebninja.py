@@ -143,11 +143,14 @@ class OpenWebNinjaAdapter:
         url = f"{self._base_url}{path}"
         quota.record_call(self.api_slug)
         started = time.monotonic()
+        # Bound before the try so the except blocks below can always log whatever
+        # was captured, even if the failure happened before a response body was
+        # parsed (e.g. a connection-level error).
+        body: Any = None
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 resp = await client.get(url, headers=self._headers(), params=params)
                 headers = {k.lower(): v for k, v in resp.headers.items()}
-                body: Any
                 try:
                     body = resp.json()
                 except Exception:
@@ -180,7 +183,15 @@ class OpenWebNinjaAdapter:
             return None
         except Exception as exc:
             self.had_error = True
-            logger.warning("%s %s failed: %s", label, path, exc)
+            # Log the actual response body (truncated) -- httpx's raise_for_status()
+            # message alone ("Client error '400 Bad Request' for url ...") never
+            # says *why* the API rejected the request, and that reason isn't
+            # exposed anywhere else (not in the /refresh response, no debug
+            # endpoint), so diagnosing a bad-request bug otherwise requires direct
+            # server log access.
+            logger.warning(
+                "%s %s failed: %s | response body: %s", label, path, exc, str(body)[:500]
+            )
             self._log_benchmark(path, started, "http_error")
             return None
 
