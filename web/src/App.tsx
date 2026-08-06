@@ -22,6 +22,14 @@ const BOARD_MS = 90_000;
 const LIVE_REFRESH_MS = 10 * 60_000;
 const CLOCK_MS = 1000;
 
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.();
+  } else {
+    document.exitFullscreen?.();
+  }
+}
+
 function deltaColor(pct: number) {
   if (pct >= 20) return colors.green;
   if (pct > 0) return colors.amber;
@@ -134,11 +142,7 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === "f" && !filtersOpen) {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen?.();
-        } else {
-          document.exitFullscreen?.();
-        }
+        toggleFullscreen();
       }
       if (e.key === "r" || e.key === "R") {
         cycleLive(true);
@@ -192,7 +196,7 @@ export default function App() {
               className="ghost"
               aria-label="Fullscreen"
               title="Fullscreen"
-              onClick={() => document.documentElement.requestFullscreen?.()}
+              onClick={toggleFullscreen}
             >
               <IoExpandOutline aria-hidden="true" />
             </button>
@@ -261,7 +265,7 @@ export default function App() {
               role="menuitem"
               aria-label="Fullscreen"
               onClick={() => {
-                document.documentElement.requestFullscreen?.();
+                toggleFullscreen();
                 setMenuOpen(false);
               }}
             >

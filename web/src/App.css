@@ -65,6 +65,10 @@
   color: #2ee56a;
   min-width: 8ch;
   text-align: right;
+  /* Extra separation from the action buttons beyond .topbar-right's normal
+     0.75rem gap -- keeps the clock reading as its own info block instead of
+     drifting into the Cart/Menu button cluster. */
+  margin-right: 0.75rem;
 }
 
 .ghost {
