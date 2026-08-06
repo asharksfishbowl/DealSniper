@@ -180,16 +180,6 @@ export default function App() {
             </button>
             <button
               type="button"
-              className="ghost cart-top"
-              aria-label={`Cart, ${cart.length} item${cart.length === 1 ? "" : "s"}`}
-              title="Cart"
-              onClick={() => setCartOpen(true)}
-            >
-              <IoCartOutline aria-hidden="true" />
-              <span>{cart.length}</span>
-            </button>
-            <button
-              type="button"
               className="ghost"
               aria-label="Refresh"
               title="Refresh"
@@ -207,6 +197,19 @@ export default function App() {
               <IoExpandOutline aria-hidden="true" />
             </button>
           </div>
+          {/* Cart stays outside the hamburger at every width -- it's the one
+              action a phone-width kiosk user reaches for constantly, unlike
+              Filters/Refresh/Fullscreen which are occasional. */}
+          <button
+            type="button"
+            className="ghost cart-top"
+            aria-label={`Cart, ${cart.length} item${cart.length === 1 ? "" : "s"}`}
+            title="Cart"
+            onClick={() => setCartOpen(true)}
+          >
+            <IoCartOutline aria-hidden="true" />
+            <span>{cart.length}</span>
+          </button>
           <button
             type="button"
             className="ghost topbar-menu-btn"
@@ -215,7 +218,6 @@ export default function App() {
             onClick={() => setMenuOpen((v) => !v)}
           >
             <IoMenuOutline aria-hidden="true" />
-            {cart.length > 0 && <span className="menu-badge">{cart.length}</span>}
           </button>
         </div>
       </header>
@@ -242,17 +244,6 @@ export default function App() {
               }}
             >
               <IoOptionsOutline aria-hidden="true" /> Filters
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              aria-label={`Cart, ${cart.length} item${cart.length === 1 ? "" : "s"}`}
-              onClick={() => {
-                setCartOpen(true);
-                setMenuOpen(false);
-              }}
-            >
-              <IoCartOutline aria-hidden="true" /> Cart{cart.length > 0 ? ` (${cart.length})` : ""}
             </button>
             <button
               type="button"
