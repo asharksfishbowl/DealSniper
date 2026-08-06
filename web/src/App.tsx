@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { IoCartOutline, IoExpandOutline, IoOptionsOutline, IoRefreshOutline } from "react-icons/io5";
+import {
+  IoCartOutline,
+  IoExpandOutline,
+  IoMenuOutline,
+  IoOptionsOutline,
+  IoRefreshOutline,
+} from "react-icons/io5";
 import { FaArrowUpRightFromSquare, FaStar } from "react-icons/fa6";
 import { fetchDeals, getApiBase, refreshDeals, registerDevice } from "./api";
 import { loadCart, saveCart } from "./cart";
@@ -67,6 +73,7 @@ export default function App() {
   const [flashId, setFlashId] = useState<number | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [cart, setCart] = useState<Deal[]>(loadCart);
   const [refreshInfo, setRefreshInfo] = useState<RefreshResult | null>(null);
   const deviceId = getKioskDeviceId();
@@ -87,7 +94,9 @@ export default function App() {
       setDeals((prev) => {
         if (prev.length && data[0] && prev[0]?.id !== data[0].id) {
           setFlashId(data[0].id);
-          window.setTimeout(() => setFlashId(null), 1800);
+          // Cleared by onAnimationEnd on the flashing element(s) once the CSS
+          // "pulse" animation actually finishes, instead of a fixed timer
+          // guessing how long that takes.
         }
         return data;
       });
@@ -139,6 +148,7 @@ export default function App() {
       }
       if (e.key === "Escape") {
         setFiltersOpen(false);
+        setMenuOpen(false);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -158,45 +168,117 @@ export default function App() {
         </div>
         <div className="topbar-right">
           <div className="clock">{formatClock(now)}</div>
+          <div className="topbar-actions">
+            <button
+              type="button"
+              className="ghost"
+              aria-label="Filters"
+              title="Filters"
+              onClick={() => setFiltersOpen(true)}
+            >
+              <IoOptionsOutline aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="ghost cart-top"
+              aria-label={`Cart, ${cart.length} item${cart.length === 1 ? "" : "s"}`}
+              title="Cart"
+              onClick={() => setCartOpen(true)}
+            >
+              <IoCartOutline aria-hidden="true" />
+              <span>{cart.length}</span>
+            </button>
+            <button
+              type="button"
+              className="ghost"
+              aria-label="Refresh"
+              title="Refresh"
+              onClick={() => cycleLive(true)}
+            >
+              <IoRefreshOutline aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="ghost"
+              aria-label="Fullscreen"
+              title="Fullscreen"
+              onClick={() => document.documentElement.requestFullscreen?.()}
+            >
+              <IoExpandOutline aria-hidden="true" />
+            </button>
+          </div>
           <button
             type="button"
-            className="ghost"
-            aria-label="Filters"
-            title="Filters"
-            onClick={() => setFiltersOpen(true)}
+            className="ghost topbar-menu-btn"
+            aria-label="Menu"
+            title="Menu"
+            onClick={() => setMenuOpen((v) => !v)}
           >
-            <IoOptionsOutline aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="ghost cart-top"
-            aria-label={`Cart, ${cart.length} item${cart.length === 1 ? "" : "s"}`}
-            title="Cart"
-            onClick={() => setCartOpen(true)}
-          >
-            <IoCartOutline aria-hidden="true" />
-            <span>{cart.length}</span>
-          </button>
-          <button
-            type="button"
-            className="ghost"
-            aria-label="Refresh"
-            title="Refresh"
-            onClick={() => cycleLive(true)}
-          >
-            <IoRefreshOutline aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="ghost"
-            aria-label="Fullscreen"
-            title="Fullscreen"
-            onClick={() => document.documentElement.requestFullscreen?.()}
-          >
-            <IoExpandOutline aria-hidden="true" />
+            <IoMenuOutline aria-hidden="true" />
+            {cart.length > 0 && <span className="menu-badge">{cart.length}</span>}
           </button>
         </div>
       </header>
+
+      {menuOpen && (
+        <div
+          className="topbar-menu-overlay"
+          onClick={() => setMenuOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="topbar-menu"
+            role="menu"
+            aria-label="Menu"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              aria-label="Filters"
+              onClick={() => {
+                setFiltersOpen(true);
+                setMenuOpen(false);
+              }}
+            >
+              <IoOptionsOutline aria-hidden="true" /> Filters
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              aria-label={`Cart, ${cart.length} item${cart.length === 1 ? "" : "s"}`}
+              onClick={() => {
+                setCartOpen(true);
+                setMenuOpen(false);
+              }}
+            >
+              <IoCartOutline aria-hidden="true" /> Cart{cart.length > 0 ? ` (${cart.length})` : ""}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              aria-label="Refresh"
+              onClick={() => {
+                cycleLive(true);
+                setMenuOpen(false);
+              }}
+            >
+              <IoRefreshOutline aria-hidden="true" /> Refresh
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              aria-label="Fullscreen"
+              onClick={() => {
+                document.documentElement.requestFullscreen?.();
+                setMenuOpen(false);
+              }}
+            >
+              <IoExpandOutline aria-hidden="true" /> Fullscreen
+            </button>
+          </div>
+        </div>
+      )}
 
       <TickerTape deals={deals} />
 
@@ -252,6 +334,7 @@ export default function App() {
               </div>
             </>
           );
+          const clearFlash = () => setFlashId(null);
           return href ? (
             <a
               className={heroClass}
@@ -259,11 +342,14 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               title="Open product page"
+              onAnimationEnd={clearFlash}
             >
               {heroBody}
             </a>
           ) : (
-            <section className={heroClass}>{heroBody}</section>
+            <section className={heroClass} onAnimationEnd={clearFlash}>
+              {heroBody}
+            </section>
           );
         })()
       ) : null}
@@ -290,7 +376,11 @@ export default function App() {
           }`;
           const inCart = cart.some((item) => item.id === deal.id);
           return (
-            <div key={deal.id} className={rowClass}>
+            <div
+              key={deal.id}
+              className={rowClass}
+              onAnimationEnd={() => setFlashId(null)}
+            >
               <span className="sym" style={{ color: retailerColor(deal.retailer) }}>
                 {deal.ticker || deal.external_id}
                 {deal.is_demo ? <small className="demo-badge">DEMO</small> : null}
