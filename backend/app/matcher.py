@@ -70,6 +70,17 @@ def _match_terms(keyword: str) -> list[str]:
     return KEYWORD_ALIASES.get(key, [key])
 
 
+def _category_matches(category: str, haystack: str) -> bool:
+    """Alias-aware like keyword matching, but falls back to a plain substring
+    check (not word-boundary-aware) for category values that aren't a
+    KEYWORD_ALIASES key, so real retailer category strings (e.g.
+    "Electronics > TVs") keep matching exactly as before."""
+    terms = KEYWORD_ALIASES.get(category)
+    if terms:
+        return any(_term_in_text(term, haystack) for term in terms)
+    return category in haystack
+
+
 def _term_in_text(term: str, haystack: str) -> bool:
     """Word-aware match so 'tv' does not hit inside random tokens."""
     term = term.lower().strip()
@@ -141,7 +152,7 @@ def score_deal(deal: Deal, prefs: Preference | None) -> float:
         return 0.0
 
     categories = _split_csv(prefs.categories)
-    if categories and not any(cat in blob for cat in categories):
+    if categories and not any(_category_matches(cat, blob) for cat in categories):
         return 0.0
 
     score = 0.0

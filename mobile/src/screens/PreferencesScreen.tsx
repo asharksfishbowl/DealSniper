@@ -270,11 +270,16 @@ export function PreferencesScreen({ navigation, deviceId }: Props) {
           style={styles.input}
           value={categoriesText}
           onChangeText={setCategoriesText}
-          placeholder="electronics, groceries, home"
+          placeholder="electronics, home, kitchen"
           placeholderTextColor={colors.textDim}
           autoCapitalize="none"
           autoCorrect={false}
         />
+        <Text style={styles.hint}>
+          Optional — narrows by the retailer's own product category, separate
+          from Deal Type above. Leave blank unless you have a specific
+          category in mind.
+        </Text>
 
         <Text style={styles.label}>RETAILERS</Text>
         <View style={styles.chips}>
