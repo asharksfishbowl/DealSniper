@@ -25,11 +25,17 @@ class Settings(BaseSettings):
     # Only persist products that are actually discounted (DealSniper is deals, not catalogs).
     min_ingest_pct_off: float = 5.0
     # Amazon /search is relevance-sorted, not discount-sorted, and page 1 alone
-    # often misses higher-discount items ranked lower for the query term. Fetch
-    # up to this many pages per keyword search (stops early once a page returns
-    # no new products) -- bounded because each extra page is another live call
-    # against the same monthly per-product quota as everything else.
-    amazon_search_max_pages: int = 3
+    # often misses higher-discount items ranked lower for the query term. The
+    # fetch loop already stops as soon as a page returns no new products, so in
+    # practice this fetches every real page for the vast majority of search
+    # terms -- this is a safety ceiling for the rare very-broad term with many
+    # genuine pages, not a normal expected limit, so it's set generously rather
+    # than tightly. Still bounded (not literally unlimited) because each extra
+    # page is another live call against the same monthly per-product quota as
+    # everything else in this app -- an unbounded loop against a pathological
+    # or misbehaving response could otherwise exhaust a whole month's quota in
+    # a single search.
+    amazon_search_max_pages: int = 15
 
 
 @lru_cache
