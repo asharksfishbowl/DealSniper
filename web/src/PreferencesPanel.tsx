@@ -188,8 +188,13 @@ export function PreferencesPanel({ deviceId, open, onClose, onSaved }: Props) {
               className="prefs-input"
               value={categoriesText}
               onChange={(e) => setCategoriesText(e.target.value)}
-              placeholder="electronics, groceries"
+              placeholder="electronics, home"
             />
+            <p className="prefs-hint">
+              Optional — narrows by the retailer's own product category,
+              separate from Deal Type above. Leave blank unless you have a
+              specific category in mind.
+            </p>
 
             <label className="prefs-label">RETAILERS</label>
             <div className="prefs-chips">
