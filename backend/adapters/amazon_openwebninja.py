@@ -48,14 +48,19 @@ class AmazonOpenWebNinjaAdapter(OpenWebNinjaAdapter):
             self._collect(data, country, seen, deals)
             return deals
 
+        # "sort_by": "FEATURED" + "deals_and_discounts": "ALL_DISCOUNTS" used to be
+        # sent here but neither is a documented value for this endpoint (the API's
+        # own default sort is "RELEVANCE"; "deals_and_discounts" doesn't appear in
+        # its docs at all) -- confirmed via live logs that every keyword search hit
+        # a 400 Bad Request on exactly this param combo, every time, since this
+        # adapter was written. Dropped both rather than guess a replacement value
+        # we can't verify; the API's own defaults apply.
         data = await self._get(
             "/search",
             {
                 "query": queries[0],
                 "country": country,
                 "page": 1,
-                "sort_by": "FEATURED",
-                "deals_and_discounts": "ALL_DISCOUNTS",
             },
         )
         self._collect(data, country, seen, deals)
