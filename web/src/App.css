@@ -40,6 +40,17 @@
   gap: 0.75rem;
 }
 
+/* Preserves the pre-hamburger spacing between the 4 action buttons now
+   that they're wrapped in this intermediate div (needed so the ≤480px
+   media query has something to toggle display:none on as a single unit) --
+   without this, >480px would visually change even though the acceptance
+   criteria requires it stay identical. */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .clock {
   font-family: "IBM Plex Mono", monospace;
   font-weight: 700;
@@ -62,6 +73,13 @@
   padding: 0.55rem 0.8rem;
   min-height: 2.75rem;
   cursor: pointer;
+}
+
+/* Hamburger menu is phone-width-only (≤480px) -- hidden by default here,
+   switched on inside the 480px block below. Exactly one of
+   .topbar-actions / .topbar-menu-btn is visible at any width. */
+.topbar-menu-btn {
+  display: none;
 }
 
 .ghost svg {
@@ -605,5 +623,74 @@ a.hero-quote.hero-link:hover {
 
   .clock {
     white-space: nowrap;
+  }
+
+  /* Collapse the 4 individual topbar icons into one hamburger + dropdown
+     menu -- both variants exist in the DOM at every width; this media
+     query is what picks which one renders (same pattern as the board-row
+     restack above, no JS branching on width). */
+  .topbar-actions {
+    display: none;
+  }
+
+  .topbar-menu-btn {
+    display: inline-flex;
+    position: relative;
+  }
+
+  .topbar-menu-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: transparent;
+  }
+
+  .topbar-menu {
+    position: absolute;
+    top: 4.5rem;
+    right: 1rem;
+    display: flex;
+    flex-direction: column;
+    min-width: 10rem;
+    background: #0e1411;
+    border: 1px solid #2e5036;
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.45);
+    z-index: 51;
+  }
+
+  .topbar-menu button {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    color: #2ee56a;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #1e2a22;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .topbar-menu button:last-child {
+    border-bottom: none;
+  }
+
+  .topbar-menu button:hover {
+    background: #122016;
+  }
+
+  .menu-badge {
+    position: absolute;
+    top: -0.3rem;
+    right: -0.3rem;
+    min-width: 1.1em;
+    padding: 0.05rem 0.25rem;
+    font-size: 0.65rem;
+    background: #2ee56a;
+    color: #0b0f0c;
+    border-radius: 999px;
   }
 }
