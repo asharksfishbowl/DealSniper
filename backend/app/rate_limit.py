@@ -3,8 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 _last_external_fetch: datetime | None = None
-_cooldown_until: datetime | None = None
-_last_skip_reason: str = ""
+_retailer_cooldowns: dict[str, datetime] = {}
 
 
 def _now() -> datetime:
@@ -12,39 +11,25 @@ def _now() -> datetime:
 
 
 def seconds_until_allowed(min_interval: int) -> int:
-    now = _now()
-    waits: list[float] = []
-    if _cooldown_until and _cooldown_until > now:
-        waits.append((_cooldown_until - now).total_seconds())
-    if _last_external_fetch:
-        elapsed = (now - _last_external_fetch).total_seconds()
-        if elapsed < min_interval:
-            waits.append(min_interval - elapsed)
-    return int(max(waits) if waits else 0)
+    """Global min-interval throttle only -- per-retailer 429 cooldowns are
+    tracked separately via is_retailer_cooling_down(), since one retailer's
+    rate limit must not block live fetches for the others."""
+    if not _last_external_fetch:
+        return 0
+    elapsed = (_now() - _last_external_fetch).total_seconds()
+    remaining = min_interval - elapsed
+    return int(remaining) if remaining > 0 else 0
 
 
 def should_skip_external(force: bool, min_interval: int) -> tuple[bool, str]:
-    """Return (skip, reason). force bypasses the normal interval but not a hard 429 cooldown."""
-    global _last_skip_reason
-    now = _now()
-
-    if _cooldown_until and _cooldown_until > now:
-        remaining = int((_cooldown_until - now).total_seconds())
-        _last_skip_reason = f"rate_limited:{remaining}"
-        return True, f"OpenWebNinja cooldown · retry in {remaining}s (serving cache)"
-
+    """Return (skip, reason) for the GLOBAL min-interval throttle only.
+    force bypasses this. Per-retailer 429 cooldowns are a separate check
+    (is_retailer_cooling_down), made inside the refresh loop per retailer."""
     if force:
-        _last_skip_reason = ""
         return False, ""
-
-    if _last_external_fetch:
-        elapsed = (now - _last_external_fetch).total_seconds()
-        if elapsed < min_interval:
-            remaining = int(min_interval - elapsed)
-            _last_skip_reason = f"cooldown:{remaining}"
-            return True, f"Using cache · next live fetch in {remaining}s"
-
-    _last_skip_reason = ""
+    remaining = seconds_until_allowed(min_interval)
+    if remaining > 0:
+        return True, f"Using cache · next live fetch in {remaining}s"
     return False, ""
 
 
@@ -53,11 +38,23 @@ def mark_external_fetch() -> None:
     _last_external_fetch = _now()
 
 
-def mark_rate_limited(seconds: int = 600) -> None:
-    global _cooldown_until
-    _cooldown_until = _now() + timedelta(seconds=max(30, seconds))
+def is_retailer_cooling_down(retailer: str) -> tuple[bool, int]:
+    """Return (cooling_down, seconds_remaining) for this specific retailer's
+    post-429 cooldown. Scoped per retailer -- a 429 from one OpenWebNinja
+    endpoint (e.g. Costco) must not block live fetches for the others."""
+    until = _retailer_cooldowns.get(retailer)
+    if not until:
+        return False, 0
+    remaining = (until - _now()).total_seconds()
+    if remaining <= 0:
+        _retailer_cooldowns.pop(retailer, None)
+        return False, 0
+    return True, int(remaining)
 
 
-def clear_rate_limit() -> None:
-    global _cooldown_until
-    _cooldown_until = None
+def mark_rate_limited(retailer: str, seconds: int = 600) -> None:
+    _retailer_cooldowns[retailer] = _now() + timedelta(seconds=max(30, seconds))
+
+
+def clear_rate_limit(retailer: str) -> None:
+    _retailer_cooldowns.pop(retailer, None)

@@ -324,6 +324,7 @@ async def refresh_deals(
         cooldown_seconds = retry_after
     else:
         limited: list[str] = []
+        limited_retry_after = 0
         quota_hit: list[str] = []
         called_any = False
         for name in retailers:
@@ -341,6 +342,19 @@ async def refresh_deals(
                     "Skipping %s — monthly OpenWebNinja quota exhausted (resets %s UTC)",
                     adapter_cls.retailer,
                     reset.date().isoformat() if reset else "next month",
+                )
+                continue
+
+            cooling, cooldown_remaining = rate_limit.is_retailer_cooling_down(
+                adapter_cls.retailer
+            )
+            if cooling:
+                limited.append(adapter_cls.retailer.title())
+                limited_retry_after = max(limited_retry_after, cooldown_remaining)
+                logger.info(
+                    "Skipping %s — rate-limit cooldown (%ss remaining)",
+                    adapter_cls.retailer,
+                    cooldown_remaining,
                 )
                 continue
 
@@ -389,6 +403,14 @@ async def refresh_deals(
                 quota_hit.append(adapter_cls.retailer.title())
             elif adapter.was_rate_limited:
                 limited.append(adapter_cls.retailer.title())
+                # Per-retailer cooldown -- a 429 from this one retailer must
+                # not block live fetches for the others this cycle or next.
+                rate_limit.mark_rate_limited(
+                    adapter_cls.retailer, settings.rate_limit_cooldown_seconds
+                )
+                limited_retry_after = max(
+                    limited_retry_after, settings.rate_limit_cooldown_seconds
+                )
             elif adapter.had_error:
                 logger.warning(
                     "%s fetch failed (network/parse/error-payload) — not stamping cache, "
@@ -404,6 +426,7 @@ async def refresh_deals(
                     country=country,
                     result_count=len(discounted),
                 )
+                rate_limit.clear_rate_limit(adapter_cls.retailer)
 
         if called_any:
             rate_limit.mark_external_fetch()
@@ -412,11 +435,11 @@ async def refresh_deals(
         if state == "quota_exhausted":
             logger.warning("Refresh skipped quota-exhausted stores: %s", ", ".join(quota_hit))
         elif state == "rate_limited":
-            rate_limit.mark_rate_limited(settings.rate_limit_cooldown_seconds)
-            retry_after = settings.rate_limit_cooldown_seconds
-        elif state == "live":
-            rate_limit.clear_rate_limit()
-        elif cache_hits:  # state == "cached", and something is actually cached
+            # Cooldowns are already marked per-retailer above (both the
+            # freshly-429'd case and the already-cooling-down skip case);
+            # this just surfaces the longest remaining wait to the caller.
+            retry_after = limited_retry_after
+        elif state == "cached" and cache_hits:
             skipped_external = True
             used_cache_only = True
             remaining = [
@@ -435,7 +458,12 @@ async def refresh_deals(
             query_key=query_key,
             country=country,
             ttl=ttl,
-            cooldown_seconds=settings.rate_limit_cooldown_seconds,
+            # Actual remaining cooldown for this cycle's rate-limited
+            # retailer(s), not always the full configured duration -- a
+            # retailer already partway through a prior cooldown reports its
+            # true remaining time here, matching what is_retailer_cooling_down
+            # returned.
+            cooldown_seconds=retry_after,
         )
         message = summary.message
         refresh_state = summary.refresh_state
