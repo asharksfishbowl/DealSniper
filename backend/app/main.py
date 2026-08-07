@@ -34,7 +34,7 @@ app.include_router(api_router)
 
 
 @app.on_event("startup")
-def on_startup() -> None:
+async def on_startup() -> None:
     from app.bootstrap import ensure_bootstrap_deals
     from app.config import get_settings
     from app.database import SessionLocal
@@ -43,7 +43,7 @@ def on_startup() -> None:
     init_db()
     db = SessionLocal()
     try:
-        ensure_bootstrap_deals(db)
+        await ensure_bootstrap_deals(db)
         purge_full_price_deals(db, min_pct=get_settings().min_ingest_pct_off)
     finally:
         db.close()
