@@ -85,10 +85,10 @@ def is_demo_deal(retailer: str, external_id: str) -> bool:
     return (retailer.lower(), external_id) in DEMO_KEYS
 
 
-def ensure_bootstrap_deals(db: Session) -> int:
+async def ensure_bootstrap_deals(db: Session) -> int:
     """Seed clearly labeled demo data only when the deal database is empty."""
     if db.query(Deal).count() > 0:
         return 0
-    saved = upsert_deals(db, DEMO_DEALS)
+    saved = await upsert_deals(db, DEMO_DEALS)
     logger.info("Seeded %s labeled demo deal(s)", len(saved))
     return len(saved)

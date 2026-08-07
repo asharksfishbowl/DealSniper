@@ -14,7 +14,7 @@ from app.config import get_settings
 from app.matcher import score_deal, search_term_for_keyword, should_skip_retailer_for_query
 from app.models import AlertLog, Deal, Device, Preference
 from app.push import send_expo_push
-from app import quota, rate_limit, search_cache
+from app import impact, quota, rate_limit, search_cache
 
 logger = logging.getLogger(__name__)
 
@@ -61,12 +61,13 @@ def _append_search_query(existing: str | None, source_query: str | None) -> str:
     return ",".join(sorted(terms))
 
 
-def upsert_deals(
+async def upsert_deals(
     db: Session,
     deals: list[NormalizedDeal],
     source_query: str | None = None,
 ) -> list[Deal]:
     now = datetime.now(timezone.utc)
+    settings = get_settings()
     saved: list[Deal] = []
     for item in deals:
         existing = (
@@ -82,6 +83,10 @@ def upsert_deals(
             existing.list_price = item.list_price
             existing.pct_off = item.pct_off
             existing.url = item.url
+            if existing.affiliate_url is None and item.url:
+                existing.affiliate_url = await impact.get_tracking_url(
+                    item.retailer, item.url, settings
+                )
             existing.image_url = item.image_url
             existing.in_stock = item.in_stock
             if item.rating is not None:
@@ -95,6 +100,10 @@ def upsert_deals(
             existing.updated_at = now
             saved.append(existing)
         else:
+            affiliate_url = (
+                await impact.get_tracking_url(item.retailer, item.url, settings)
+                if item.url else None
+            )
             deal = Deal(
                 retailer=item.retailer,
                 external_id=item.external_id,
@@ -105,6 +114,7 @@ def upsert_deals(
                 list_price=item.list_price,
                 pct_off=item.pct_off,
                 url=item.url,
+                affiliate_url=affiliate_url,
                 image_url=item.image_url,
                 in_stock=item.in_stock,
                 rating=item.rating,
@@ -471,7 +481,7 @@ async def refresh_deals(
         cooldown_seconds = summary.cooldown_seconds
         quota_reset_date = summary.quota_reset_date
 
-    saved = upsert_deals(db, fetched, source_query=query_key) if fetched else []
+    saved = await upsert_deals(db, fetched, source_query=query_key) if fetched else []
     alerts_sent = await _send_alerts(db, device_id, saved)
 
     return {

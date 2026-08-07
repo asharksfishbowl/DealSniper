@@ -38,6 +38,8 @@ def _ensure_sqlite_columns() -> None:
             conn.execute(
                 text("ALTER TABLE deals ADD COLUMN search_queries TEXT NOT NULL DEFAULT ''")
             )
+        if "affiliate_url" not in names:
+            conn.execute(text("ALTER TABLE deals ADD COLUMN affiliate_url TEXT"))
 
 
 def init_db() -> None:

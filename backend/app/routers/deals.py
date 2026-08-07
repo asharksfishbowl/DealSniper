@@ -20,6 +20,7 @@ def _deal_out(deal: Deal, match: float) -> DealOut:
     out.title = clean_title(deal.title)
     out.match_score = match
     out.is_demo = is_demo_deal(deal.retailer, deal.external_id)
+    out.url = deal.affiliate_url or out.url
     if out.url:
         out.url = apply_affiliate_tag(deal.retailer, out.url, get_settings())
     return out

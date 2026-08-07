@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     amazon_affiliate_tag: str = ""
     walmart_affiliate_id: str = ""
     homedepot_affiliate_id: str = ""
+    impact_account_sid: str = ""
+    impact_auth_token: str = ""
+    walmart_impact_campaign_id: str = ""
+    homedepot_impact_campaign_id: str = ""
     database_url: str = "sqlite:///./dealsniper.db"
     match_alert_threshold: int = 70
     cors_origins: str = "*"

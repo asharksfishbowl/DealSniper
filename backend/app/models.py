@@ -35,6 +35,7 @@ class Deal(Base):
     list_price: Mapped[float | None] = mapped_column(Float, nullable=True)
     pct_off: Mapped[float] = mapped_column(Float, default=0.0)
     url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    affiliate_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     in_stock: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     rating: Mapped[float | None] = mapped_column(Float, nullable=True)
