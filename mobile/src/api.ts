@@ -40,12 +40,54 @@ const API_BASE = defaultHost();
 
 const REQUEST_TIMEOUT_MS = 12_000;
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  // Bounded network timeout — without this, an unreachable API_BASE leaves
-  // the fetch Promise pending indefinitely (bounded only by the OS TCP
-  // stack), which is what left the Watchlist spinner spinning forever.
+// A forced refresh does live OpenWebNinja work across retailers sequentially,
+// so it is the one call that legitimately runs long. 200s matches the bound the
+// web kiosk's nginx enforces, and stays under Azure App Service's
+// non-configurable ~240s (Linux) front-end idle timeout -- which mobile hits
+// directly, since it does not go through our nginx.
+const REFRESH_TIMEOUT_MS = 200_000;
+
+export class HttpError extends Error {
+  readonly status: number;
+
+  constructor(status: number, statusText: string) {
+    // Built from status only -- never from the response body. Mobile talks to
+    // Azure App Service directly, which serves HTML error pages, and those used
+    // to land verbatim in the Watchlist's status line.
+    // statusText is empty over HTTP/2, so trim keeps the message readable.
+    super(`HTTP ${status} ${statusText}`.trim());
+    this.name = "HttpError";
+    this.status = status;
+  }
+}
+
+export class RequestTimeoutError extends Error {
+  readonly timeoutMs: number;
+
+  constructor(timeoutMs: number) {
+    super(`Request timed out after ${Math.round(timeoutMs / 1000)}s`);
+    this.name = "RequestTimeoutError";
+    this.timeoutMs = timeoutMs;
+  }
+}
+
+export const msgOf = (err: unknown, fallback = "Unknown error") =>
+  err instanceof Error ? err.message : fallback;
+
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  timeoutMs: number = REQUEST_TIMEOUT_MS,
+): Promise<T> {
+  // Without this, an unreachable API_BASE leaves the fetch Promise pending
+  // indefinitely (bounded only by the OS TCP stack), which is what left the
+  // Watchlist spinner spinning forever.
+  //
+  // AbortSignal.timeout() would express this without a timer, but React Native
+  // 0.81 polyfills AbortSignal from `abort-controller`
+  // (Libraries/Core/setUpXHR.js), which does not implement .timeout().
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs); // golden-rule-ignore: request deadline that aborts a hung fetch, not a delay
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       ...init,
@@ -56,13 +98,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       },
     });
     if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || `HTTP ${res.status}`);
+      throw new HttpError(res.status, res.statusText);
     }
     return res.json() as Promise<T>;
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
-      throw new Error("Request timed out — check your connection");
+      // Report the fact (timed out, after how long); let each caller say what
+      // it means. "Check your connection" is the wrong diagnosis for a forced
+      // refresh, where the connection is fine and the work is still running.
+      throw new RequestTimeoutError(timeoutMs);
     }
     throw err;
   } finally {
@@ -104,8 +148,12 @@ export function registerDevice(deviceId: string, expoPushToken?: string | null) 
 }
 
 export function refreshDeals(deviceId: string, force = false) {
-  return request<RefreshResult>(`/refresh`, {
-    method: "POST",
-    body: JSON.stringify({ device_id: deviceId, force }),
-  });
+  return request<RefreshResult>(
+    `/refresh`,
+    {
+      method: "POST",
+      body: JSON.stringify({ device_id: deviceId, force }),
+    },
+    REFRESH_TIMEOUT_MS,
+  );
 }
