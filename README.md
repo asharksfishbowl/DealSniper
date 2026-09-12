@@ -102,6 +102,15 @@ API base URL defaults (without env):
 
 - iOS simulator → `http://127.0.0.1:8000`
 - Android emulator → `http://10.0.2.2:8000`
+
+**For EAS builds, the API URL lives in `mobile/eas.json`** — `preview.env` and `production.env`
+both set `EXPO_PUBLIC_API_URL`. That is the single source of truth.
+
+Do **not** also set `EXPO_PUBLIC_API_URL` in the Expo dashboard's environment variables. When it
+is defined in both places the build profile silently wins, so a change made in the dashboard —
+the obvious place to look — produces a build still pointing at the old host, with the only
+warning buried in build output. Change it here, in git, where it is reviewable.
+
 ## App flow
 
 1. Launch creates a local `device_id` and registers with the backend (optional Expo push token)
