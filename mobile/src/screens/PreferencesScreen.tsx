@@ -34,6 +34,7 @@ const RETAILERS = [
   { id: "costco", label: "COSTCO" },
   { id: "walmart", label: "WALMART" },
   { id: "homedepot", label: "HOME DEPOT" },
+  { id: "ebay", label: "EBAY" },
 ] as const;
 const DEAL_TYPES = [
   "tv",

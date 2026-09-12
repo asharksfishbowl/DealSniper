@@ -66,6 +66,7 @@ class RefreshOut(BaseModel):
     costco: int = 0
     walmart: int = 0
     homedepot: int = 0
+    ebay: int = 0
     alerts_sent: int
     used_cache_only: bool = False
     skipped_external: bool = False

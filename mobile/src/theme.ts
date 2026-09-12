@@ -14,6 +14,11 @@ export const colors = {
   costco: "#4A9FD4",
   walmart: "#5B9BD5",
   homedepot: "#E07A3D",
+  // Violet, not an eBay brand colour: all four of eBay's brand colours collide
+  // with a token already here (red #E53238 vs red, blue #0064D2 vs costco and
+  // walmart, yellow #F5AF02 vs amazon and amber, green #86B817 vs green), and
+  // costco/walmart are already hard to tell apart. Violet was the open hue.
+  ebay: "#9B7ADF",
   cyan: "#4BD4D4",
   magenta: "#C45BC4",
 };

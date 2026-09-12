@@ -5,6 +5,7 @@ from typing import Type
 from adapters.amazon_openwebninja import AmazonOpenWebNinjaAdapter
 from adapters.base import TICKER_PREFIXES
 from adapters.costco_openwebninja import CostcoOpenWebNinjaAdapter
+from adapters.ebay_openwebninja import EbayOpenWebNinjaAdapter
 from adapters.homedepot_openwebninja import HomeDepotOpenWebNinjaAdapter
 from adapters.openwebninja import OpenWebNinjaAdapter
 from adapters.walmart_openwebninja import WalmartOpenWebNinjaAdapter
@@ -15,6 +16,7 @@ STORE_ADAPTERS: dict[str, Type[OpenWebNinjaAdapter]] = {
     CostcoOpenWebNinjaAdapter.retailer: CostcoOpenWebNinjaAdapter,
     WalmartOpenWebNinjaAdapter.retailer: WalmartOpenWebNinjaAdapter,
     HomeDepotOpenWebNinjaAdapter.retailer: HomeDepotOpenWebNinjaAdapter,
+    EbayOpenWebNinjaAdapter.retailer: EbayOpenWebNinjaAdapter,
 }
 
 # Keep ticker prefixes in sync with registered adapters.
@@ -26,6 +28,7 @@ __all__ = [
     "CostcoOpenWebNinjaAdapter",
     "WalmartOpenWebNinjaAdapter",
     "HomeDepotOpenWebNinjaAdapter",
+    "EbayOpenWebNinjaAdapter",
     "OpenWebNinjaAdapter",
     "STORE_ADAPTERS",
 ]
