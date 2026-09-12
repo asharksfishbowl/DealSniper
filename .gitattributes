@@ -1,0 +1,37 @@
+# Line endings are normalized to LF, in the repository AND in the working tree.
+#
+# Why this file exists: without it, every tracked text file in this repo read as
+# modified because the working tree held CRLF while every blob in HEAD is LF.
+# `git status` listed 106 files with no real changes in them, which made
+# `git add -A` dangerous (it would sweep ~25,000 lines of line-ending churn into
+# a branch) and buried the two files that genuinely had pending edits.
+#
+# eol=lf rather than plain `text=auto`: everything this repo produces runs on
+# Linux -- Docker images for the backend and the nginx-fronted web kiosk, the
+# shell entrypoints those images execute, and GitHub Actions runners. A CRLF
+# shebang line makes a shell script fail with a confusing "bad interpreter"
+# error, so LF in the working tree is the safer default here even when someone
+# edits on Windows. Modern Windows editors all handle LF.
+* text=auto eol=lf
+
+# Binary files: never touched, never diffed as text. text=auto would normally
+# detect these, but declaring them explicitly means a corrupt-by-normalization
+# bug can't happen even if detection is wrong.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.keystore binary
+*.jks binary
+
+# Generated; keep them out of diffs and review, but still normalized as text.
+package-lock.json -diff
