@@ -31,5 +31,24 @@ server {
     proxy_set_header Host $proxy_host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+    # A forced refresh (POST /refresh, force=true) does live OpenWebNinja work
+    # across every configured retailer *sequentially* -- up to ~19 calls at a
+    # 30s per-call httpx timeout -- so it routinely exceeds nginx's default 60s
+    # proxy_read_timeout. That default is what made SAVE & REFRESH return
+    # nginx's own 504 page while the backend went on to finish and commit its
+    # rows anyway (confirmed by last_seen advancing after the "failed" request).
+    #
+    # 200s, not higher: Azure App Service's front end imposes its own
+    # non-configurable ~230s (Windows) / ~240s (Linux) idle timeout, at BOTH
+    # this web app's front end and the API app's. Staying under it means nginx
+    # emits a 504 we control and can classify, instead of Azure silently
+    # dropping the connection.
+    #
+    # proxy_connect_timeout stays short and separate: an *unreachable* upstream
+    # should fail fast rather than sit for 200s.
+    proxy_connect_timeout 10s;
+    proxy_send_timeout 200s;
+    proxy_read_timeout 200s;
   }
 }
