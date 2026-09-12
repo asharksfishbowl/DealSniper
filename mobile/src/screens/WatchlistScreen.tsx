@@ -16,7 +16,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-import { fetchDeals, getApiBase, refreshDeals } from "../api";
+import { fetchDeals, getApiBase, msgOf, refreshDeals, RequestTimeoutError } from "../api";
 import { loadCart, toggleCartItem } from "../cart";
 import { DealRow } from "../components/DealRow";
 import { TickerTape } from "../components/TickerTape";
@@ -111,7 +111,7 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
       setDeals(data);
       setStatus(`${data.length} symbols · ${getApiBase()}`);
     } catch (err) {
-      setStatus(err instanceof Error ? err.message : "Failed to load");
+      setStatus(msgOf(err, "Failed to load"));
     } finally {
       setLoading(false);
     }
@@ -126,14 +126,26 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    let outcome = "";
     try {
       const result = await refreshDeals(deviceId, true);
-      setStatus(result.message);
       setRefreshInfo(result);
-      await load();
+      outcome = result.message;
     } catch (err) {
-      setStatus(err instanceof Error ? err.message : "Refresh failed");
+      // A client-side abort only proves we stopped waiting -- it does not
+      // prove the backend got the request -- so the copy says "may", not
+      // "is". Nothing cancels the backend when this client gives up, though:
+      // POST /refresh keeps awaiting refresh_deals() and commits its rows.
+      outcome =
+        err instanceof RequestTimeoutError
+          ? "No response in time — the refresh may still be finishing on the server. Pull down again in a moment."
+          : `Refresh failed (${msgOf(err, "unknown error")}).`;
     } finally {
+      // Reload on both paths so a failed refresh doesn't leave a stale board.
+      await load();
+      // After load(), never before: load() writes its own status line, so
+      // setting the outcome earlier would have it immediately overwritten.
+      setStatus(outcome);
       setRefreshing(false);
     }
   };
