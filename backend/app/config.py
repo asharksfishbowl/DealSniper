@@ -40,6 +40,15 @@ class Settings(BaseSettings):
     # or misbehaving response could otherwise exhaust a whole month's quota in
     # a single search.
     amazon_search_max_pages: int = 15
+    # How many Impact.com TrackingLinks calls may be in flight at once during a
+    # single refresh. Impact's own rate limits are not documented to us, so this
+    # is deliberately a small bound rather than an unbounded fan-out: it keeps a
+    # handful of deals from becoming a 15s-per-call sequential chain (14 deals x
+    # 15s = 210s, past the proxy bound the frontends sit behind) without
+    # pretending we may hammer their API in parallel. Impact is NOT the metered
+    # OpenWebNinja API -- it has no monthly quota -- so this is a politeness
+    # bound, not a budget one.
+    impact_max_concurrent_requests: int = 5
 
 
 @lru_cache
