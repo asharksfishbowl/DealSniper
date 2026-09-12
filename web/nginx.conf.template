@@ -4,7 +4,18 @@ server {
   root /usr/share/nginx/html;
   index index.html;
 
+  # Hashed build assets (index-<hash>.js) are content-addressed -- a new build
+  # gets a new URL, so the old one can never be served stale. Cache forever.
+  location /assets/ {
+    add_header Cache-Control "public, max-age=31536000, immutable" always;
+  }
+
   location / {
+    # index.html names the hashed bundles, so a stale copy pins the browser to
+    # an old build. Sending no Cache-Control made browsers fall back to
+    # heuristic freshness (~10% of the doc's age) -- a 5-week-old build stayed
+    # "fresh" for ~3.5 days without revalidating, so deploys were invisible.
+    add_header Cache-Control "no-cache" always;
     try_files $uri $uri/ /index.html;
   }
 
