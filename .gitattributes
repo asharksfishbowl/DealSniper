@@ -14,6 +14,14 @@
 # edits on Windows. Modern Windows editors all handle LF.
 * text=auto eol=lf
 
+# Redundant against the rule above, but stated explicitly because this is the
+# case that actually breaks: mobile/Dockerfile uses exec-form
+# ENTRYPOINT ["/docker-entrypoint.sh"] and web/Dockerfile drops its script into
+# nginx's /docker-entrypoint.d/. The kernel reads the shebang directly, so a
+# trailing \r turns it into "/bin/sh^M: bad interpreter" -- a failure whose
+# message points nowhere near the real cause.
+*.sh text eol=lf
+
 # Binary files: never touched, never diffed as text. text=auto would normally
 # detect these, but declaring them explicitly means a corrupt-by-normalization
 # bug can't happen even if detection is wrong.
