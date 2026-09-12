@@ -69,12 +69,34 @@ async def upsert_deals(
     now = datetime.now(timezone.utc)
     settings = get_settings()
     saved: list[Deal] = []
+
+    # Phase A -- resolve. Pair every item with the row it will update, if any.
+    resolved: list[tuple[NormalizedDeal, Deal | None]] = []
     for item in deals:
         existing = (
             db.query(Deal)
             .filter(Deal.retailer == item.retailer, Deal.external_id == item.external_id)
             .one_or_none()
         )
+        resolved.append((item, existing))
+
+    # Phase B -- fetch every tracking URL this cycle needs in one batched,
+    # bounded-concurrency call instead of one blocking round-trip per deal.
+    # The condition here is purely about our own rows: a URL to deep-link and
+    # no tracking URL stored yet. Which retailers are actually enrolled is
+    # Impact's business, and get_tracking_urls() filters on it before building
+    # any coroutine -- so the not-yet-enrolled case stays free.
+    tracking = await impact.get_tracking_urls(
+        [
+            (item.retailer, item.external_id, item.url)
+            for item, existing in resolved
+            if item.url and (existing is None or existing.affiliate_url is None)
+        ],
+        settings,
+    )
+
+    # Phase C -- apply. Every tracking URL is now an in-memory lookup.
+    for item, existing in resolved:
         if existing:
             existing.title = item.title
             existing.ticker = item.ticker or existing.ticker
@@ -84,9 +106,7 @@ async def upsert_deals(
             existing.pct_off = item.pct_off
             existing.url = item.url
             if existing.affiliate_url is None and item.url:
-                existing.affiliate_url = await impact.get_tracking_url(
-                    item.retailer, item.url, settings
-                )
+                existing.affiliate_url = tracking.get((item.retailer, item.external_id))
             existing.image_url = item.image_url
             existing.in_stock = item.in_stock
             if item.rating is not None:
@@ -100,10 +120,7 @@ async def upsert_deals(
             existing.updated_at = now
             saved.append(existing)
         else:
-            affiliate_url = (
-                await impact.get_tracking_url(item.retailer, item.url, settings)
-                if item.url else None
-            )
+            affiliate_url = tracking.get((item.retailer, item.external_id))
             deal = Deal(
                 retailer=item.retailer,
                 external_id=item.external_id,
