@@ -2,6 +2,25 @@ import type { Deal, Preferences, RefreshResult } from "./types";
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") || "";
 
+export class HttpError extends Error {
+  readonly status: number;
+
+  constructor(status: number, statusText: string) {
+    // Built from status only -- never from the response body, which may be an
+    // arbitrary HTML document (nginx's 504 page, Azure's front-end error page)
+    // and used to get rendered verbatim as the panel's status message.
+    // statusText is empty over HTTP/2, so trim keeps the message readable.
+    super(`HTTP ${status} ${statusText}`.trim());
+    this.name = "HttpError";
+    this.status = status;
+  }
+}
+
+// Lives beside HttpError so every caller that catches one has a single way to
+// render it, rather than re-deriving `err instanceof Error ? ...` per catch.
+export const msgOf = (err: unknown, fallback = "Unknown error") =>
+  err instanceof Error ? err.message : fallback;
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -11,7 +30,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
   if (!res.ok) {
-    throw new Error((await res.text()) || `HTTP ${res.status}`);
+    throw new HttpError(res.status, res.statusText);
   }
   return res.json() as Promise<T>;
 }

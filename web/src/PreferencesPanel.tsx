@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchPreferences, refreshDeals, savePreferences } from "./api";
+import { fetchPreferences, HttpError, msgOf, refreshDeals, savePreferences } from "./api";
 import { DEAL_TYPES, PCT_PRESETS, type Preferences } from "./types";
 import "./PreferencesPanel.css";
 
@@ -45,7 +45,7 @@ export function PreferencesPanel({ deviceId, open, onClose, onSaved }: Props) {
         setCategoriesText("");
         setMinPct("15");
         setMaxPrice("");
-        setMessage(err instanceof Error ? err.message : "Failed to load");
+        setMessage(msgOf(err, "Failed to load"));
       });
   }, [deviceId, open]);
 
@@ -78,28 +78,51 @@ export function PreferencesPanel({ deviceId, open, onClose, onSaved }: Props) {
     if (!prefs) return;
     setSaving(true);
     setMessage("");
+
     try {
-      await savePreferences(deviceId, {
-        keywords: keywordsText
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        categories: categoriesText
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        min_pct_off: Number(minPct) || 0,
-        max_price: maxPrice.trim() ? Number(maxPrice) : null,
-        retailers: prefs.retailers,
-        country: prefs.country,
-        alerts_enabled: prefs.alerts_enabled,
-      });
+      try {
+        await savePreferences(deviceId, {
+          keywords: keywordsText
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          categories: categoriesText
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          min_pct_off: Number(minPct) || 0,
+          max_price: maxPrice.trim() ? Number(maxPrice) : null,
+          retailers: prefs.retailers,
+          country: prefs.country,
+          alerts_enabled: prefs.alerts_enabled,
+        });
+      } catch (err) {
+        // Nothing was saved and no refresh was attempted -- say exactly that,
+        // and skip the refresh entirely.
+        setMessage(`Could not save filters (${msgOf(err)}).`);
+        return;
+      }
+
       setMessage("Refreshing deals…");
-      await refreshDeals(deviceId, true);
-      onSaved();
-      onClose();
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Save failed");
+      try {
+        await refreshDeals(deviceId, true);
+        onClose();
+      } catch (err) {
+        // The filters ARE saved, and nothing cancels the backend when the
+        // proxy gives up -- POST /refresh keeps awaiting refresh_deals() and
+        // commits its rows. So keep the panel open (the message has to be
+        // readable) and let the finally below reload the board regardless.
+        setMessage(
+          err instanceof HttpError && err.status === 504
+            ? "Filters saved. The refresh is taking longer than the connection allows, but it is still running on the server — the board will show new deals as they land."
+            : `Filters saved, but the refresh failed (${msgOf(err)}). The board has been reloaded with stored deals.`
+        );
+      } finally {
+        // Reload the board after any refresh attempt, exactly as cycleLive()
+        // does in App.tsx -- on success for the fresh rows, on failure for
+        // whatever the backend committed before the proxy gave up.
+        onSaved();
+      }
     } finally {
       setSaving(false);
     }
