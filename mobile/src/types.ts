@@ -40,6 +40,7 @@ export type RefreshResult = {
   costco?: number;
   walmart?: number;
   homedepot?: number;
+  ebay?: number;
   alerts_sent: number;
   used_cache_only: boolean;
   skipped_external?: boolean;

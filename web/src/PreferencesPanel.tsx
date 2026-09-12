@@ -227,6 +227,7 @@ export function PreferencesPanel({ deviceId, open, onClose, onSaved }: Props) {
                   ["costco", "COSTCO"],
                   ["walmart", "WALMART"],
                   ["homedepot", "HOME DEPOT"],
+                  ["ebay", "EBAY"],
                 ] as const
               ).map(([id, label]) => (
                 <button
