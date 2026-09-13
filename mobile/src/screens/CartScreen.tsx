@@ -22,12 +22,16 @@ import {
   storeLabel,
 } from "../cart";
 import type { Deal } from "../types";
-import { colors, fonts } from "../theme";
+import { fonts } from "../fonts";
+import type { Theme } from "../theme";
+import { rgba, useTheme, useThemedStyles } from "../themeStyles";
 import type { RootStackParamList } from "../navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Cart">;
 
 export function CartScreen({}: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [items, setItems] = useState<Deal[]>([]);
   const [associateTag, setAssociateTag] = useState("");
@@ -128,7 +132,7 @@ export function CartScreen({}: Props) {
                     autoCapitalize="none"
                     autoCorrect={false}
                     placeholder="required by Amazon"
-                    placeholderTextColor={colors.textDim}
+                    placeholderTextColor={colors.textLabel}
                   />
                   {amazonUrl ? (
                     <Pressable
@@ -167,44 +171,44 @@ export function CartScreen({}: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (t: Theme) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.bg,
+    backgroundColor: t.colors.surfaceDeep,
   },
   content: {
     padding: 16,
   },
   heading: {
-    color: colors.text,
+    color: t.colors.textPrimary,
     fontFamily: fonts.brand,
     fontSize: 48,
     letterSpacing: 2,
     lineHeight: 52,
   },
   sub: {
-    color: colors.textMuted,
+    color: t.colors.textSecondary,
     fontFamily: fonts.mono,
     fontSize: 13,
     marginBottom: 18,
     marginTop: 4,
   },
   empty: {
-    color: colors.textMuted,
+    color: t.colors.textSecondary,
     fontFamily: fonts.mono,
     fontSize: 15,
     lineHeight: 22,
     marginTop: 24,
   },
   store: {
-    backgroundColor: colors.bgElevated,
-    borderColor: colors.border,
+    backgroundColor: t.colors.surfaceRaised,
+    borderColor: t.colors.lineHairline,
     borderWidth: 1,
     marginBottom: 16,
   },
   storeHead: {
     alignItems: "center",
-    borderBottomColor: colors.border,
+    borderBottomColor: t.colors.lineHairline,
     borderBottomWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -212,20 +216,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   storeName: {
-    color: colors.green,
+    color: t.colors.accentPrimary,
     fontFamily: fonts.monoMed,
     fontSize: 14,
     letterSpacing: 1.5,
   },
   storeCount: {
-    color: colors.textDim,
+    color: t.colors.textLabel,
     fontFamily: fonts.mono,
     fontSize: 11,
     letterSpacing: 1,
   },
   item: {
     alignItems: "center",
-    borderBottomColor: colors.border,
+    borderBottomColor: t.colors.lineHairline,
     borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
     gap: 12,
@@ -236,26 +240,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemTitle: {
-    color: colors.text,
+    color: t.colors.textPrimary,
     fontFamily: fonts.mono,
     fontSize: 14,
     lineHeight: 20,
   },
   itemMeta: {
-    color: colors.amber,
+    color: t.colors.accentSecondary,
     fontFamily: fonts.mono,
     fontSize: 12,
     marginTop: 4,
   },
   openLink: {
-    color: colors.green,
+    color: t.colors.accentPrimary,
     fontFamily: fonts.monoMed,
     fontSize: 12,
     letterSpacing: 0.8,
     marginTop: 8,
   },
   remove: {
-    color: colors.red,
+    color: t.colors.actionDestructive,
     fontFamily: fonts.monoMed,
     fontSize: 11,
     letterSpacing: 0.8,
@@ -264,17 +268,17 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   label: {
-    color: colors.textDim,
+    color: t.colors.textLabel,
     fontFamily: fonts.mono,
     fontSize: 11,
     letterSpacing: 1.2,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: colors.bg,
-    borderColor: colors.border,
+    backgroundColor: t.colors.surfaceDeep,
+    borderColor: t.colors.lineHairline,
     borderWidth: 1,
-    color: colors.text,
+    color: t.colors.textPrimary,
     fontFamily: fonts.mono,
     fontSize: 14,
     marginBottom: 10,
@@ -282,20 +286,20 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   amazonCta: {
-    backgroundColor: "rgba(232, 163, 23, 0.12)",
-    borderColor: colors.amazon,
+    backgroundColor: rgba(t.colors.amazon, 0.12),
+    borderColor: t.colors.amazon,
     borderWidth: 1,
     paddingVertical: 12,
   },
   amazonCtaText: {
-    color: colors.amazon,
+    color: t.colors.amazon,
     fontFamily: fonts.monoBold,
     fontSize: 12,
     letterSpacing: 1,
     textAlign: "center",
   },
   note: {
-    color: colors.textMuted,
+    color: t.colors.textSecondary,
     fontFamily: fonts.mono,
     fontSize: 12,
     lineHeight: 18,
@@ -303,37 +307,37 @@ const styles = StyleSheet.create({
   },
   totalBox: {
     alignItems: "flex-end",
-    borderColor: colors.green,
+    borderColor: t.colors.accentPrimary,
     borderWidth: 1,
     marginBottom: 16,
     padding: 16,
   },
   totalLabel: {
-    color: colors.textDim,
+    color: t.colors.textLabel,
     fontFamily: fonts.mono,
     fontSize: 11,
     letterSpacing: 1.2,
   },
   totalPrice: {
-    color: colors.green,
+    color: t.colors.accentPrimary,
     fontFamily: fonts.monoBold,
     fontSize: 28,
     marginTop: 4,
   },
   totalNote: {
-    color: colors.textMuted,
+    color: t.colors.textSecondary,
     fontFamily: fonts.mono,
     fontSize: 10,
     marginTop: 5,
   },
   clearBtn: {
-    borderColor: "#4B2828",
+    borderColor: t.colors.lineDanger,
     borderWidth: 1,
     marginTop: 4,
     paddingVertical: 14,
   },
   clearText: {
-    color: colors.red,
+    color: t.colors.actionDestructive,
     fontFamily: fonts.monoMed,
     fontSize: 13,
     letterSpacing: 1.2,

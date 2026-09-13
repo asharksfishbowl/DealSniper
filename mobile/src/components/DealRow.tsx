@@ -2,7 +2,9 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { formatRating } from "../format";
 import type { Deal } from "../types";
-import { colors, fonts } from "../theme";
+import { fonts } from "../fonts";
+import type { Theme } from "../theme";
+import { useTheme, useThemedStyles } from "../themeStyles";
 
 type Props = {
   deal: Deal;
@@ -12,10 +14,12 @@ type Props = {
 };
 
 export function DealRow({ deal, inCart = false, onPress, onToggleCart }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const strong = deal.pct_off >= 20;
-  const deltaColor = strong ? colors.green : deal.pct_off > 0 ? colors.amber : colors.red;
+  const deltaColor = strong ? colors.stateGain : deal.pct_off > 0 ? colors.stateMid : colors.stateLoss;
   const retailerColor =
-    (colors as Record<string, string>)[deal.retailer] ?? colors.textMuted;
+    (colors as Record<string, string>)[deal.retailer] ?? colors.textSecondary;
   const ratingLabel = formatRating(deal.rating, deal.review_count);
 
   return (
@@ -64,18 +68,18 @@ export function DealRow({ deal, inCart = false, onPress, onToggleCart }: Props) 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (t: Theme) => StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 15,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.bg,
+    borderBottomColor: t.colors.lineHairline,
+    backgroundColor: t.colors.surfaceDeep,
   },
   pressed: {
-    backgroundColor: colors.bgElevated,
+    backgroundColor: t.colors.surfaceRaised,
   },
   left: {
     flex: 1,
@@ -93,9 +97,9 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   demoBadge: {
-    backgroundColor: colors.amber,
+    backgroundColor: t.colors.stateDemo,
     borderRadius: 3,
-    color: colors.bg,
+    color: t.colors.stateDemoInk,
     fontFamily: fonts.monoBold,
     fontSize: 10,
     letterSpacing: 0.8,
@@ -104,13 +108,13 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   title: {
-    color: colors.textMuted,
+    color: t.colors.textSecondary,
     fontFamily: fonts.mono,
     fontSize: 15,
     lineHeight: 20,
   },
   rating: {
-    color: colors.amber,
+    color: t.colors.accentSecondary,
     fontFamily: fonts.mono,
     fontSize: 13,
     marginTop: 3,
@@ -123,10 +127,10 @@ const styles = StyleSheet.create({
   // Solid backing chip on price/delta/score so the CRT overlay (WatchlistScreen)
   // can never reduce their contrast (Requirement 8).
   price: {
-    color: colors.text,
+    color: t.colors.textPrimary,
     fontFamily: fonts.monoMed,
     fontSize: 17,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: t.colors.numChipBg,
     paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 2,
@@ -135,43 +139,43 @@ const styles = StyleSheet.create({
     fontFamily: fonts.monoBold,
     fontSize: 16,
     marginTop: 2,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: t.colors.numChipBg,
     paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 2,
   },
   score: {
-    color: colors.textDim,
+    color: t.colors.textLabel,
     fontFamily: fonts.monoBold,
     fontSize: 15,
     marginTop: 2,
     letterSpacing: 1,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: t.colors.numChipBg,
     paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 2,
   },
   scoreHighChip: {
     borderWidth: 1,
-    borderColor: colors.cyan,
+    borderColor: t.colors.stateStandout,
   },
   cartBtn: {
-    borderColor: colors.green,
+    borderColor: t.colors.accentPrimary,
     borderWidth: 1,
     marginTop: 8,
     paddingHorizontal: 8,
     paddingVertical: 5,
   },
   cartBtnOn: {
-    backgroundColor: colors.green,
+    backgroundColor: t.colors.accentPrimary,
   },
   cartBtnText: {
-    color: colors.green,
+    color: t.colors.accentPrimary,
     fontFamily: fonts.monoMed,
     fontSize: 11,
     letterSpacing: 0.8,
   },
   cartBtnTextOn: {
-    color: colors.bg,
+    color: t.colors.accentPrimaryInk,
   },
 });
