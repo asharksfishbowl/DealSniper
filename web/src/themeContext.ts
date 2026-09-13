@@ -1,12 +1,26 @@
 import { createContext, useContext } from "react";
-import { DEFAULT_THEME_ID, getTheme, type Theme } from "./theme";
+import { DEFAULT_THEME_ID, getTheme, type Theme, type ThemeId } from "./theme";
 
-// Fixed to the default theme in this phase: there is no switcher yet, so nothing
-// ever provides a different value. Phase 3 replaces the provided value with
-// state that setTheme updates.
-export const ThemeContext = createContext<Theme>(getTheme(DEFAULT_THEME_ID));
+export type ThemeContextValue = {
+  theme: Theme;
+  setTheme: (id: ThemeId) => void;
+};
+
+export const ThemeContext = createContext<ThemeContextValue>({
+  theme: getTheme(DEFAULT_THEME_ID),
+  setTheme: () => {
+    // Fail loudly: a switcher rendered outside ThemeProvider would otherwise
+    // look like it works and silently change nothing.
+    throw new Error("setTheme called outside ThemeProvider");
+  },
+});
 
 /** The active theme. Read colours from here, never from a module-level token. */
 export function useTheme(): Theme {
-  return useContext(ThemeContext);
+  return useContext(ThemeContext).theme;
+}
+
+/** Switches the active theme: repaints, persists, and re-renders consumers. */
+export function useSetTheme(): (id: ThemeId) => void {
+  return useContext(ThemeContext).setTheme;
 }
