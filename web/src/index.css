@@ -24,7 +24,7 @@ body,
 
 body {
   margin: 0;
-  background: #0b0f0c;
+  background: var(--surface-deep);
   cursor: none;
 }
 

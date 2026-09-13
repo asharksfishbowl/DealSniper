@@ -14,8 +14,9 @@ import { getKioskDeviceId } from "./device";
 import { formatRating, formatReviews } from "./format";
 import { PreferencesPanel } from "./PreferencesPanel";
 import { TickerTape } from "./TickerTape";
+import type { ThemeColors } from "./theme";
+import { useTheme } from "./themeContext";
 import type { Deal, RefreshResult } from "./types";
-import { colors } from "./types";
 import "./App.css";
 
 const BOARD_MS = 90_000;
@@ -30,14 +31,14 @@ function toggleFullscreen() {
   }
 }
 
-function deltaColor(pct: number) {
-  if (pct >= 20) return colors.green;
-  if (pct > 0) return colors.amber;
-  return colors.red;
+function deltaColor(colors: ThemeColors, pct: number) {
+  if (pct >= 20) return colors.stateGain;
+  if (pct > 0) return colors.stateMid;
+  return colors.stateLoss;
 }
 
-function retailerColor(retailer: string) {
-  return (colors as Record<string, string>)[retailer] ?? colors.textMuted;
+function retailerColor(colors: ThemeColors, retailer: string) {
+  return (colors as Record<string, string>)[retailer] ?? colors.textSecondary;
 }
 
 function formatClock(d: Date) {
@@ -53,7 +54,7 @@ function dealHref(deal: Deal): string | undefined {
 // refresh-state-contract backend work lands — falls back to "cached" with a
 // 0s age placeholder (Edge Case 2/4's own "null cache_age_seconds" case,
 // which the backend spec explicitly leaves to this frontend implementation).
-function tickerLineFor(result: RefreshResult | null): {
+function tickerLineFor(colors: ThemeColors, result: RefreshResult | null): {
   text: string;
   color: string;
   state: string;
@@ -61,20 +62,21 @@ function tickerLineFor(result: RefreshResult | null): {
   const state = result?.refresh_state;
   if (state === "quota_exhausted") {
     const date = (result?.quota_reset_date ?? "SOON").toUpperCase();
-    return { text: `OUT OF CREDITS · RESUME ${date}`, color: colors.red, state: "quota" };
+    return { text: `OUT OF CREDITS · RESUME ${date}`, color: colors.stateLoss, state: "quota" };
   }
   if (state === "rate_limited") {
     const secs = result?.cooldown_seconds ?? 0;
-    return { text: `COOLDOWN · RETRY ${secs}S`, color: colors.red, state: "cooldown" };
+    return { text: `COOLDOWN · RETRY ${secs}S`, color: colors.stateLoss, state: "cooldown" };
   }
   if (state === "live") {
-    return { text: "LIVE FEED · SCANNING...", color: colors.cyan, state: "live" };
+    return { text: "LIVE FEED · SCANNING...", color: colors.stateLive, state: "live" };
   }
   const secs = result?.cache_age_seconds ?? 0;
-  return { text: `CACHED DATA · ${secs}S AGO`, color: colors.magenta, state: "cached" };
+  return { text: `CACHED DATA · ${secs}S AGO`, color: colors.stateCached, state: "cached" };
 }
 
 export default function App() {
+  const { colors } = useTheme();
   const [deals, setDeals] = useState<Deal[]>([]);
   const [status, setStatus] = useState("connecting…");
   const [now, setNow] = useState(() => new Date());
@@ -160,7 +162,7 @@ export default function App() {
   }, [cycleLive, filtersOpen]);
 
   const top = deals[0];
-  const ticker = tickerLineFor(refreshInfo);
+  const ticker = tickerLineFor(colors, refreshInfo);
 
   return (
     <div className="kiosk">
@@ -300,7 +302,7 @@ export default function App() {
           const heroBody = (
             <>
               <div className="hero-meta">
-                <span style={{ color: retailerColor(top.retailer) }}>{top.ticker}</span>
+                <span style={{ color: retailerColor(colors, top.retailer) }}>{top.ticker}</span>
                 <span className="hero-retailer">{top.retailer.toUpperCase()}</span>
                 {top.is_demo ? (
                   <span className="demo-banner">DEMO DATA · PRICES ARE NOT LIVE</span>
@@ -319,7 +321,7 @@ export default function App() {
                 </div>
                 <div>
                   <div className="num-label">CHG%</div>
-                  <div className="num-value" style={{ color: deltaColor(top.pct_off) }}>
+                  <div className="num-value" style={{ color: deltaColor(colors, top.pct_off) }}>
                     {top.pct_off > 0 ? "+" : ""}
                     {top.pct_off.toFixed(1)}%
                   </div>
@@ -392,7 +394,7 @@ export default function App() {
               className={rowClass}
               onAnimationEnd={() => setFlashId(null)}
             >
-              <span className="sym" style={{ color: retailerColor(deal.retailer) }}>
+              <span className="sym" style={{ color: retailerColor(colors, deal.retailer) }}>
                 {deal.ticker || deal.external_id}
                 {deal.is_demo ? <small className="demo-badge">DEMO</small> : null}
               </span>
@@ -411,7 +413,7 @@ export default function App() {
               )}
               <span className="rating">{formatRating(deal.rating, deal.review_count)}</span>
               <span className="px">${deal.price.toFixed(2)}</span>
-              <span className="delta" style={{ color: deltaColor(deal.pct_off) }}>
+              <span className="delta" style={{ color: deltaColor(colors, deal.pct_off) }}>
                 {deal.pct_off > 0 ? "+" : ""}
                 {deal.pct_off.toFixed(1)}%
               </span>
