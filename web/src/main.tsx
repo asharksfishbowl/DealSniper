@@ -1,9 +1,9 @@
 import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
-import { DEFAULT_THEME_ID, getTheme } from "./theme";
+import { ThemeProvider } from "./ThemeProvider";
 import { applyTheme } from "./themeCss";
-import { ThemeContext } from "./themeContext";
+import { readStoredTheme } from "./themePersistence";
 import "./index.css";
 
 function Root() {
@@ -26,16 +26,16 @@ function Root() {
   return <App />;
 }
 
-const theme = getTheme(DEFAULT_THEME_ID);
-
-// Before the first render, so no frame ever paints with the custom properties
-// unset. Every colour in the CSS files reads from them.
+// localStorage is synchronous, so the saved theme is resolved and applied
+// before the first render: the first frame is already in the persisted theme,
+// never the default then a swap (Requirement 5.3).
+const theme = readStoredTheme();
 applyTheme(theme);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ThemeContext.Provider value={theme}>
+    <ThemeProvider initialTheme={theme}>
       <Root />
-    </ThemeContext.Provider>
+    </ThemeProvider>
   </StrictMode>
 );

@@ -1,6 +1,13 @@
 import { createContext, createElement, useContext, type ReactNode } from "react";
 
-import { DEFAULT_THEME_ID, getTheme, type Theme, type ThemeId } from "./theme";
+import {
+  DEFAULT_THEME_ID,
+  getTheme,
+  type FontId,
+  type FontWeight,
+  type Theme,
+  type ThemeId,
+} from "./theme";
 
 // Fixed to the default theme in this phase: there is no switcher yet, so the
 // provider never supplies anything else. Phase 4 moves the value into state
@@ -55,4 +62,26 @@ export function rgba(hex: string, alpha: number): string {
   }
   const [r, g, b] = match.slice(1).map((pair) => parseInt(pair, 16));
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// Platform-neutral font ids to the expo-font keys loaded by App.tsx's useFonts.
+// Only faces that are actually loaded are listed, so asking for one that isn't
+// throws instead of silently falling back to the system font.
+const FONT_FAMILIES: Record<FontId, Partial<Record<FontWeight, string>>> = {
+  pressStart2P: { 400: "PressStart2P_400Regular" },
+  bebasNeue: { 400: "BebasNeue_400Regular" },
+  ibmPlexMono: {
+    400: "IBMPlexMono_400Regular",
+    500: "IBMPlexMono_500Medium",
+    700: "IBMPlexMono_700Bold",
+  },
+};
+
+/** The expo-font key for a theme font id at a weight. */
+export function fontFamily(id: FontId, weight: FontWeight): string {
+  const family = FONT_FAMILIES[id][weight];
+  if (!family) {
+    throw new Error(`No loaded ${id} face at weight ${weight}`);
+  }
+  return family;
 }
