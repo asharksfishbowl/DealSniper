@@ -2,13 +2,16 @@ import { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 
 import type { Deal } from "../types";
-import { colors, fonts } from "../theme";
+import { fonts } from "../fonts";
+import type { Theme } from "../theme";
+import { useThemedStyles } from "../themeStyles";
 
 type Props = {
   deals: Deal[];
 };
 
 export function TickerTape({ deals }: Props) {
+  const styles = useThemedStyles(createStyles);
   const offset = useRef(new Animated.Value(0)).current;
   const hot = deals.filter((d) => d.pct_off >= 15).slice(0, 12);
   const items = hot.length ? hot : deals.slice(0, 8);
@@ -50,16 +53,16 @@ export function TickerTape({ deals }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (t: Theme) => StyleSheet.create({
   wrap: {
-    backgroundColor: colors.bgTape,
+    backgroundColor: t.colors.surfaceInset,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: t.colors.lineHairline,
     paddingTop: 8,
     paddingBottom: 10,
   },
   label: {
-    color: colors.textDim,
+    color: t.colors.textLabel,
     fontFamily: fonts.pixel,
     fontSize: 9,
     letterSpacing: 0.5,
@@ -71,7 +74,7 @@ const styles = StyleSheet.create({
     height: 27,
   },
   text: {
-    color: colors.green,
+    color: t.colors.accentPrimary,
     fontFamily: fonts.monoMed,
     fontSize: 16,
     lineHeight: 22,

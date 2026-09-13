@@ -22,7 +22,9 @@ import { loadCart, toggleCartItem } from "../cart";
 import { DealRow } from "../components/DealRow";
 import { TickerTape } from "../components/TickerTape";
 import type { Deal, RefreshResult } from "../types";
-import { colors, fonts } from "../theme";
+import { fonts } from "../fonts";
+import type { Theme, ThemeColors } from "../theme";
+import { useTheme, useThemedStyles } from "../themeStyles";
 import type { RootStackParamList } from "../navigation";
 
 // Arcade status-ticker line (specs/retro-arcade-ui/design-retro-arcade.md,
@@ -30,7 +32,7 @@ import type { RootStackParamList } from "../navigation";
 // refresh-state-contract backend work lands — falls back to "cached" with a
 // 0s age placeholder (Edge Case 2/4's own "null cache_age_seconds" case,
 // which the backend spec explicitly leaves to this frontend implementation).
-function tickerLineFor(result: RefreshResult | null): {
+function tickerLineFor(colors: ThemeColors, result: RefreshResult | null): {
   text: string;
   color: string;
   live: boolean;
@@ -38,17 +40,17 @@ function tickerLineFor(result: RefreshResult | null): {
   const state = result?.refresh_state;
   if (state === "quota_exhausted") {
     const date = (result?.quota_reset_date ?? "SOON").toUpperCase();
-    return { text: `OUT OF CREDITS · RESUME ${date}`, color: colors.red, live: false };
+    return { text: `OUT OF CREDITS · RESUME ${date}`, color: colors.stateLoss, live: false };
   }
   if (state === "rate_limited") {
     const secs = result?.cooldown_seconds ?? 0;
-    return { text: `COOLDOWN · RETRY ${secs}S`, color: colors.red, live: false };
+    return { text: `COOLDOWN · RETRY ${secs}S`, color: colors.stateLoss, live: false };
   }
   if (state === "live") {
-    return { text: "LIVE FEED · SCANNING...", color: colors.cyan, live: true };
+    return { text: "LIVE FEED · SCANNING...", color: colors.stateLive, live: true };
   }
   const secs = result?.cache_age_seconds ?? 0;
-  return { text: `CACHED DATA · ${secs}S AGO`, color: colors.magenta, live: false };
+  return { text: `CACHED DATA · ${secs}S AGO`, color: colors.stateCached, live: false };
 }
 
 type Props = NativeStackScreenProps<RootStackParamList, "Watchlist"> & {
@@ -56,6 +58,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "Watchlist"> & {
 };
 
 export function WatchlistScreen({ navigation, deviceId }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [deals, setDeals] = useState<Deal[]>([]);
   const [cartIds, setCartIds] = useState<Set<number>>(new Set());
@@ -73,7 +77,7 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
     return () => sub.remove();
   }, []);
 
-  const ticker = tickerLineFor(refreshInfo);
+  const ticker = tickerLineFor(colors, refreshInfo);
 
   useEffect(() => {
     if (!ticker.live || reduceMotion) {
@@ -188,7 +192,7 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
             accessibilityRole="button"
             accessibilityLabel={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}
           >
-            <Ionicons name="cart-outline" size={27} color={colors.green} />
+            <Ionicons name="cart-outline" size={27} color={colors.accentPrimary} />
             {cartCount > 0 ? (
               <View style={styles.cartBadge}>
                 <Text style={styles.cartBadgeText}>{cartCount > 99 ? "99+" : cartCount}</Text>
@@ -202,7 +206,7 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
             accessibilityRole="button"
             accessibilityLabel="Filters"
           >
-            <Ionicons name="options-outline" size={27} color={colors.green} />
+            <Ionicons name="options-outline" size={27} color={colors.accentPrimary} />
           </Pressable>
         </View>
       </View>
@@ -218,7 +222,7 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
       </View>
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color={colors.green} size="large" />
+          <ActivityIndicator color={colors.accentPrimary} size="large" />
         </View>
       ) : (
         <FlatList
@@ -236,7 +240,7 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.green}
+              tintColor={colors.accentPrimary}
             />
           }
           ListEmptyComponent={
@@ -261,10 +265,10 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (t: Theme) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.bg,
+    backgroundColor: t.colors.surfaceDeep,
   },
   loadingContainer: {
     flex: 1,
@@ -289,18 +293,18 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    backgroundColor: colors.bgTape,
+    backgroundColor: t.colors.surfaceInset,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: t.colors.lineHairline,
   },
   header: {
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
-    backgroundColor: colors.bgElevated,
+    backgroundColor: t.colors.surfaceRaised,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: t.colors.lineHairline,
   },
   brandLockup: {
     flexDirection: "row",
@@ -316,7 +320,7 @@ const styles = StyleSheet.create({
     height: 32,
   },
   brand: {
-    color: colors.text,
+    color: t.colors.textPrimary,
     fontFamily: fonts.pixel,
     fontSize: 16,
     letterSpacing: 1,
@@ -325,7 +329,7 @@ const styles = StyleSheet.create({
   // Two-tone wordmark: only SNIPER's colour changes. Nested inside the brand
   // <Text> so it inherits font, size and spacing and stays one accessible label.
   brandAccent: {
-    color: colors.green,
+    color: t.colors.accentPrimary,
   },
   headerActions: {
     flexDirection: "row",
@@ -342,7 +346,7 @@ const styles = StyleSheet.create({
   },
   cartBadge: {
     alignItems: "center",
-    backgroundColor: colors.red,
+    backgroundColor: t.colors.stateLoss,
     borderRadius: 9,
     justifyContent: "center",
     minHeight: 18,
@@ -353,7 +357,7 @@ const styles = StyleSheet.create({
     top: -3,
   },
   cartBadgeText: {
-    color: colors.text,
+    color: t.colors.textPrimary,
     fontFamily: fonts.monoBold,
     fontSize: 9,
   },
@@ -363,23 +367,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.bgElevated,
+    borderBottomColor: t.colors.lineHairline,
+    backgroundColor: t.colors.surfaceRaised,
   },
   colSym: {
-    color: colors.textDim,
+    color: t.colors.textLabel,
     fontFamily: fonts.pixel,
     fontSize: 9,
     letterSpacing: 0.5,
   },
   colPx: {
-    color: colors.textDim,
+    color: t.colors.textLabel,
     fontFamily: fonts.pixel,
     fontSize: 9,
     letterSpacing: 0.5,
   },
   empty: {
-    color: colors.textMuted,
+    color: t.colors.textSecondary,
     fontFamily: fonts.mono,
     fontSize: 16,
     lineHeight: 22,
@@ -389,17 +393,17 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 16,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.bgElevated,
+    borderTopColor: t.colors.lineHairline,
+    backgroundColor: t.colors.surfaceRaised,
   },
   footerText: {
-    color: colors.textDim,
+    color: t.colors.textLabel,
     fontFamily: fonts.mono,
     fontSize: 14,
     lineHeight: 19,
   },
   disclosureText: {
-    color: colors.textMuted,
+    color: t.colors.textSecondary,
     fontFamily: fonts.mono,
     fontSize: 10,
     lineHeight: 14,

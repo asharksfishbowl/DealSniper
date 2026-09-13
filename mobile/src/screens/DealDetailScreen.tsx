@@ -17,7 +17,9 @@ import { fetchDeal } from "../api";
 import { loadCart, toggleCartItem } from "../cart";
 import { formatRating, formatReviews } from "../format";
 import type { Deal } from "../types";
-import { colors, fonts } from "../theme";
+import { fonts } from "../fonts";
+import type { Theme } from "../theme";
+import { useTheme, useThemedStyles } from "../themeStyles";
 import type { RootStackParamList } from "../navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "DealDetail"> & {
@@ -25,6 +27,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "DealDetail"> & {
 };
 
 export function DealDetailScreen({ route, navigation, deviceId }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { dealId } = route.params;
   const [deal, setDeal] = useState<Deal | null>(null);
   const [inCart, setInCart] = useState(false);
@@ -56,7 +60,7 @@ export function DealDetailScreen({ route, navigation, deviceId }: Props) {
           accessibilityRole="button"
           accessibilityLabel={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}
         >
-          <Ionicons name="cart-outline" size={26} color={colors.green} />
+          <Ionicons name="cart-outline" size={26} color={colors.accentPrimary} />
           {cartCount > 0 ? (
             <View style={styles.cartBadge}>
               <Text style={styles.cartBadgeText}>{cartCount > 99 ? "99+" : cartCount}</Text>
@@ -78,12 +82,12 @@ export function DealDetailScreen({ route, navigation, deviceId }: Props) {
   if (!deal) {
     return (
       <View style={styles.screen}>
-        <ActivityIndicator color={colors.green} style={{ marginTop: 40 }} />
+        <ActivityIndicator color={colors.accentPrimary} style={{ marginTop: 40 }} />
       </View>
     );
   }
 
-  const deltaColor = deal.pct_off >= 20 ? colors.green : colors.amber;
+  const deltaColor = deal.pct_off >= 20 ? colors.stateGain : colors.stateMid;
 
   const onToggleCart = async () => {
     const next = await toggleCartItem(deal);
@@ -106,9 +110,9 @@ export function DealDetailScreen({ route, navigation, deviceId }: Props) {
           <View style={[styles.bar, { height: 20 }]} />
           <View style={[styles.bar, { height: 36 }]} />
           <View style={[styles.bar, { height: 28 }]} />
-          <View style={[styles.bar, { height: 48, backgroundColor: colors.green }]} />
-          <View style={[styles.bar, { height: 40, backgroundColor: colors.green }]} />
-          <View style={[styles.bar, { height: 56, backgroundColor: colors.green }]} />
+          <View style={[styles.bar, { height: 48, backgroundColor: colors.accentPrimary }]} />
+          <View style={[styles.bar, { height: 40, backgroundColor: colors.accentPrimary }]} />
+          <View style={[styles.bar, { height: 56, backgroundColor: colors.accentPrimary }]} />
         </View>
       )}
       <View style={styles.quote}>
@@ -161,7 +165,7 @@ export function DealDetailScreen({ route, navigation, deviceId }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (t: Theme) => StyleSheet.create({
   headerCart: {
     alignItems: "center",
     height: 36,
@@ -171,7 +175,7 @@ const styles = StyleSheet.create({
   },
   cartBadge: {
     alignItems: "center",
-    backgroundColor: colors.red,
+    backgroundColor: t.colors.stateLoss,
     borderRadius: 9,
     justifyContent: "center",
     minHeight: 18,
@@ -182,20 +186,20 @@ const styles = StyleSheet.create({
     top: -3,
   },
   cartBadgeText: {
-    color: colors.text,
+    color: t.colors.textPrimary,
     fontFamily: fonts.monoBold,
     fontSize: 9,
   },
   screen: {
     flex: 1,
-    backgroundColor: colors.bg,
+    backgroundColor: t.colors.surfaceDeep,
   },
   content: {
     padding: 16,
   },
   demoBanner: {
-    backgroundColor: colors.amber,
-    color: colors.bg,
+    backgroundColor: t.colors.stateDemo,
+    color: t.colors.stateDemoInk,
     fontFamily: fonts.monoBold,
     fontSize: 12,
     letterSpacing: 1,
@@ -205,20 +209,20 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   ticker: {
-    color: colors.green,
+    color: t.colors.accentPrimary,
     fontFamily: fonts.monoBold,
     fontSize: 22,
     letterSpacing: 1,
   },
   retailer: {
-    color: colors.textDim,
+    color: t.colors.textLabel,
     fontFamily: fonts.mono,
     fontSize: 14,
     letterSpacing: 2,
     marginTop: 4,
   },
   title: {
-    color: colors.text,
+    color: t.colors.textPrimary,
     fontFamily: fonts.monoMed,
     fontSize: 20,
     marginTop: 12,
@@ -228,7 +232,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 180,
     marginTop: 20,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: t.colors.surfaceRaised,
   },
   spark: {
     height: 80,
@@ -240,7 +244,7 @@ const styles = StyleSheet.create({
   },
   bar: {
     flex: 1,
-    backgroundColor: colors.border,
+    backgroundColor: t.colors.lineHairline,
     borderRadius: 2,
   },
   quote: {
@@ -250,18 +254,18 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: colors.border,
+    borderColor: t.colors.lineHairline,
     gap: 8,
   },
   quoteLabel: {
-    color: colors.textDim,
+    color: t.colors.textLabel,
     fontFamily: fonts.mono,
     fontSize: 11,
     letterSpacing: 1.5,
     marginBottom: 6,
   },
   quotePrice: {
-    color: colors.text,
+    color: t.colors.textPrimary,
     fontFamily: fonts.monoBold,
     fontSize: 24,
   },
@@ -270,24 +274,24 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   quoteRating: {
-    color: colors.amber,
+    color: t.colors.accentSecondary,
     fontFamily: fonts.monoBold,
     fontSize: 24,
   },
   quoteMatch: {
-    color: colors.text,
+    color: t.colors.textPrimary,
     fontFamily: fonts.monoBold,
     fontSize: 24,
   },
   listPrice: {
-    color: colors.textMuted,
+    color: t.colors.textSecondary,
     fontFamily: fonts.mono,
     fontSize: 16,
     marginTop: 14,
     textDecorationLine: "line-through",
   },
   meta: {
-    color: colors.textDim,
+    color: t.colors.textLabel,
     fontFamily: fonts.mono,
     fontSize: 15,
     lineHeight: 21,
@@ -295,39 +299,39 @@ const styles = StyleSheet.create({
   },
   cta: {
     marginTop: 28,
-    backgroundColor: colors.green,
+    backgroundColor: t.colors.accentPrimary,
     paddingVertical: 14,
     alignItems: "center",
   },
   ctaSecondary: {
     backgroundColor: "transparent",
-    borderColor: colors.green,
+    borderColor: t.colors.accentPrimary,
     borderWidth: 1,
   },
   ctaText: {
-    color: colors.bg,
+    color: t.colors.accentPrimaryInk,
     fontFamily: fonts.monoBold,
     fontSize: 17,
     letterSpacing: 1.5,
   },
   ctaTextSecondary: {
-    color: colors.green,
+    color: t.colors.accentPrimary,
   },
   ctaOutline: {
     marginTop: 12,
-    borderColor: colors.border,
+    borderColor: t.colors.lineHairline,
     borderWidth: 1,
     paddingVertical: 14,
     alignItems: "center",
   },
   ctaOutlineText: {
-    color: colors.green,
+    color: t.colors.accentPrimary,
     fontFamily: fonts.monoBold,
     fontSize: 17,
     letterSpacing: 1.5,
   },
   error: {
-    color: colors.red,
+    color: t.colors.stateLoss,
     fontFamily: fonts.mono,
     fontSize: 16,
     padding: 24,
