@@ -129,9 +129,9 @@ export default function App() {
     registerDevice(deviceId).catch(() => undefined);
     load();
     // Board reloads from DB often; live OpenWebNinja fetches are throttled server-side
-    const boardTimer = window.setInterval(load, BOARD_MS);
-    const liveTimer = window.setInterval(() => cycleLive(false), LIVE_REFRESH_MS);
-    const clockTimer = window.setInterval(() => setNow(new Date()), CLOCK_MS);
+    const boardTimer = window.setInterval(load, BOARD_MS); // golden-rule-ignore: backend has no push channel, so a read-only kiosk must poll
+    const liveTimer = window.setInterval(() => cycleLive(false), LIVE_REFRESH_MS); // golden-rule-ignore: scheduled live refresh; no server event exists to trigger it
+    const clockTimer = window.setInterval(() => setNow(new Date()), CLOCK_MS); // golden-rule-ignore: wall clock display; the passing second is itself the event
     return () => {
       window.clearInterval(boardTimer);
       window.clearInterval(liveTimer);
