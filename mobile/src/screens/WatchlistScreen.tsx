@@ -176,7 +176,9 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
             style={styles.brandMark}
             accessible={false}
           />
-          <Text style={styles.brand}>DEALSNIPER</Text>
+          <Text style={styles.brand}>
+            DEAL<Text style={styles.brandAccent}>SNIPER</Text>
+          </Text>
         </View>
         <View style={styles.headerActions}>
           <Pressable
@@ -319,6 +321,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     letterSpacing: 1,
     lineHeight: 22,
+  },
+  // Two-tone wordmark: only SNIPER's colour changes. Nested inside the brand
+  // <Text> so it inherits font, size and spacing and stays one accessible label.
+  brandAccent: {
+    color: colors.green,
   },
   headerActions: {
     flexDirection: "row",
