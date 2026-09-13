@@ -166,9 +166,16 @@ export default function App() {
     <div className="kiosk">
       <div className="crt-overlay" aria-hidden="true" />
       <header className="topbar">
-        <div>
-          <h1 className="brand">DEALSNIPER</h1>
-          <p className="mode">KIOSK · MARKET BOARD</p>
+        <div className="brand-lockup">
+          {/* Decorative: the DEALSNIPER heading beside it is the accessible
+              name, so the mark carries no alt text of its own. An <img> of
+              the exported SVG rather than inline JSX, so the bitmap stays
+              defined once (specs/logo/design-logo.md Req 3.5). */}
+          <img className="brand-mark" src="/reticle-mark.svg" alt="" aria-hidden="true" />
+          <div>
+            <h1 className="brand">DEALSNIPER</h1>
+            <p className="mode">KIOSK · MARKET BOARD</p>
+          </div>
         </div>
         <div className="topbar-right">
           <div className="clock">{formatClock(now)}</div>
