@@ -17,6 +17,22 @@
   background: rgba(18, 25, 22, 0.92);
 }
 
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* 48px is 16x3, an integer multiple of the 16px source grid. Any other size
+   would resample the 1px ring and blur it (specs/logo/design-logo.md Req 1.2).
+   flex-shrink: 0 stops a wrapping heading from squeezing it to a fractional
+   width. */
+.brand-mark {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
 .brand {
   margin: 0;
   font-family: "Press Start 2P", "Bebas Neue", sans-serif;
@@ -585,6 +601,13 @@ a.hero-quote.hero-link:hover {
   .topbar {
     flex-wrap: wrap;
     gap: 0.75rem;
+  }
+
+  /* 32px = 16x2. Also governs <=480px, which has no override of its own:
+     the mark must not drop below 32px there (spec Edge Case 4). */
+  .brand-mark {
+    width: 32px;
+    height: 32px;
   }
 
   /* Once .topbar wraps, .topbar-right becomes the sole item on its own

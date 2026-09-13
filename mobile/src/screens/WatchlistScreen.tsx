@@ -5,6 +5,7 @@ import {
   Animated,
   Easing,
   FlatList,
+  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -165,7 +166,18 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
           { paddingTop: Math.max(insets.top, 12) + 10, paddingBottom: 14 },
         ]}
       >
-        <Text style={styles.brand}>DEALSNIPER</Text>
+        <View style={styles.brandLockup}>
+          {/* Decorative: DEALSNIPER is the accessible name. Exported PNGs at
+              exactly 32/64/96px rather than react-native-svg, which is a native
+              module and would need a new EAS build to ship. Metro picks the
+              @2x/@3x file for the device density. */}
+          <Image
+            source={require("../../assets/reticle-mark.png")}
+            style={styles.brandMark}
+            accessible={false}
+          />
+          <Text style={styles.brand}>DEALSNIPER</Text>
+        </View>
         <View style={styles.headerActions}>
           <Pressable
             onPress={() => navigation.navigate("Cart")}
@@ -287,6 +299,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgElevated,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  brandLockup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  // 32pt = 16x2. Integer DPRs (2, 3) land on 64/96px, which are exact
+  // multiples of the 16px grid. Fractional Android densities (e.g. 2.625
+  // -> 84px) cannot be integer by any render method -- a known, accepted
+  // limit (specs/logo/design-logo.md Edge Case 5).
+  brandMark: {
+    width: 32,
+    height: 32,
   },
   brand: {
     color: colors.text,
