@@ -173,7 +173,9 @@ export default function App() {
               defined once (specs/logo/design-logo.md Req 3.5). */}
           <img className="brand-mark" src="/reticle-mark.svg" alt="" aria-hidden="true" />
           <div>
-            <h1 className="brand">DEALSNIPER</h1>
+            <h1 className="brand">
+              DEAL<span className="brand-accent">SNIPER</span>
+            </h1>
             <p className="mode">KIOSK · MARKET BOARD</p>
           </div>
         </div>

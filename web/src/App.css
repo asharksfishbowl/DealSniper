@@ -42,6 +42,12 @@
   color: #e8f0e9;
 }
 
+/* Two-tone wordmark: SNIPER in the brand green, DEAL stays #e8f0e9 from .brand.
+   A <span> inside the one <h1>, so the heading still reads "DEALSNIPER". */
+.brand-accent {
+  color: #2ee56a;
+}
+
 .mode {
   margin: 0.35rem 0 0;
   font-family: "IBM Plex Mono", monospace;
