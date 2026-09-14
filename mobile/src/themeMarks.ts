@@ -6,7 +6,6 @@ import type { MarkId } from "./theme";
 // file for the device density from the base require().
 //
 // Typed on MarkId, so registering a theme whose mark has no asset fails tsc.
-// Nothing renders from this yet: the mobile header switches marks in phase 4.
 export const THEME_MARKS: Record<MarkId, ImageSourcePropType> = {
   "pixel-reticle": require("../assets/reticle-mark.png"),
   "neon-reticle": require("../assets/blade-runner-mark-32.png"),

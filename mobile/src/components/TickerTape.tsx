@@ -4,7 +4,7 @@ import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import type { Deal } from "../types";
 import { fonts } from "../fonts";
 import type { Theme } from "../theme";
-import { useThemedStyles } from "../themeStyles";
+import { LABEL_FONT_SIZE, labelGlow, labelType, useThemedStyles } from "../themeStyles";
 
 type Props = {
   deals: Deal[];
@@ -62,10 +62,9 @@ const createStyles = (t: Theme) => StyleSheet.create({
     paddingBottom: 10,
   },
   label: {
+    ...labelType(t, "tapeLabel"),
+    ...labelGlow(t, t.colors.textLabel, LABEL_FONT_SIZE),
     color: t.colors.textLabel,
-    fontFamily: fonts.pixel,
-    fontSize: 9,
-    letterSpacing: 0.5,
     paddingHorizontal: 14,
     marginBottom: 4,
   },

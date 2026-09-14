@@ -20,11 +20,21 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { fetchDeals, getApiBase, msgOf, refreshDeals, RequestTimeoutError } from "../api";
 import { loadCart, toggleCartItem } from "../cart";
 import { DealRow } from "../components/DealRow";
+import { HeaderMenu } from "../components/HeaderMenu";
 import { TickerTape } from "../components/TickerTape";
 import type { Deal, RefreshResult } from "../types";
 import { fonts } from "../fonts";
 import type { Theme, ThemeColors } from "../theme";
-import { useTheme, useThemedStyles } from "../themeStyles";
+import { THEME_MARKS } from "../themeMarks";
+import {
+  LABEL_FONT_SIZE,
+  displayType,
+  labelGlow,
+  labelType,
+  signGlow,
+  useTheme,
+  useThemedStyles,
+} from "../themeStyles";
 import type { RootStackParamList } from "../navigation";
 
 // Arcade status-ticker line (specs/retro-arcade-ui/design-retro-arcade.md,
@@ -32,33 +42,46 @@ import type { RootStackParamList } from "../navigation";
 // refresh-state-contract backend work lands — falls back to "cached" with a
 // 0s age placeholder (Edge Case 2/4's own "null cache_age_seconds" case,
 // which the backend spec explicitly leaves to this frontend implementation).
-function tickerLineFor(colors: ThemeColors, result: RefreshResult | null): {
-  text: string;
+// The line's runtime portion comes back separately so it can render in a flat
+// numeral <Text>: glow may never touch a digit (Blade Runner Req 36/46b).
+// prefix + num + suffix is exactly the string this used to return.
+type TickerLine = {
+  prefix: string;
+  num: string | null;
+  suffix: string;
   color: string;
   live: boolean;
-} {
+};
+
+function tickerLineFor(colors: ThemeColors, result: RefreshResult | null): TickerLine {
   const state = result?.refresh_state;
   if (state === "quota_exhausted") {
     const date = (result?.quota_reset_date ?? "SOON").toUpperCase();
-    return { text: `OUT OF CREDITS · RESUME ${date}`, color: colors.stateLoss, live: false };
+    return { prefix: "OUT OF CREDITS · RESUME ", num: date, suffix: "", color: colors.stateLoss, live: false };
   }
   if (state === "rate_limited") {
     const secs = result?.cooldown_seconds ?? 0;
-    return { text: `COOLDOWN · RETRY ${secs}S`, color: colors.stateLoss, live: false };
+    return { prefix: "COOLDOWN · RETRY ", num: String(secs), suffix: "S", color: colors.stateLoss, live: false };
   }
   if (state === "live") {
-    return { text: "LIVE FEED · SCANNING...", color: colors.stateLive, live: true };
+    return { prefix: "LIVE FEED · SCANNING...", num: null, suffix: "", color: colors.stateLive, live: true };
   }
   const secs = result?.cache_age_seconds ?? 0;
-  return { text: `CACHED DATA · ${secs}S AGO`, color: colors.stateCached, live: false };
+  return { prefix: "CACHED DATA · ", num: String(secs), suffix: "S AGO", color: colors.stateCached, live: false };
 }
+
+// Authored Retro Arcade sizes. Glow radii are multiples of them (Req 44a), so
+// each lives in one place.
+const BRAND_SIZE = 16;
+const DISCLOSURE_SIZE = 10;
 
 type Props = NativeStackScreenProps<RootStackParamList, "Watchlist"> & {
   deviceId: string;
 };
 
 export function WatchlistScreen({ navigation, deviceId }: Props) {
-  const { colors } = useTheme();
+  const theme = useTheme();
+  const { colors } = theme;
   const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [deals, setDeals] = useState<Deal[]>([]);
@@ -69,6 +92,9 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
   const [status, setStatus] = useState("");
   const [refreshInfo, setRefreshInfo] = useState<RefreshResult | null>(null);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  // The header's height, which is where the menu panel hangs from.
+  const [headerHeight, setHeaderHeight] = useState(0);
   const blink = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -78,6 +104,9 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
   }, []);
 
   const ticker = tickerLineFor(colors, refreshInfo);
+  // The one Sign-tier glow whose colour is runtime (the ticker's state colour),
+  // so it can't live in the cached styles (Blade Runner Req 42).
+  const tickerGlow = signGlow(theme, ticker.color, LABEL_FONT_SIZE);
 
   useEffect(() => {
     if (!ticker.live || reduceMotion) {
@@ -169,6 +198,7 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
           styles.header,
           { paddingTop: Math.max(insets.top, 12) + 10, paddingBottom: 14 },
         ]}
+        onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
       >
         <View style={styles.brandLockup}>
           {/* Decorative: DEALSNIPER is the accessible name. Exported PNGs at
@@ -176,7 +206,7 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
               module and would need a new EAS build to ship. Metro picks the
               @2x/@3x file for the device density. */}
           <Image
-            source={require("../../assets/reticle-mark.png")}
+            source={THEME_MARKS[theme.markId]}
             style={styles.brandMark}
             accessible={false}
           />
@@ -200,21 +230,29 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
             ) : null}
           </Pressable>
           <Pressable
-            onPress={() => navigation.navigate("Preferences")}
+            onPress={() => setMenuOpen(true)}
             style={styles.headerButton}
             hitSlop={12}
             accessibilityRole="button"
-            accessibilityLabel="Filters"
+            accessibilityLabel="Menu"
           >
-            <Ionicons name="options-outline" size={27} color={colors.accentPrimary} />
+            <Ionicons name="menu-outline" size={27} color={colors.accentPrimary} />
           </Pressable>
         </View>
       </View>
       <TickerTape deals={deals} />
+      <HeaderMenu
+        visible={menuOpen}
+        top={headerHeight}
+        onClose={() => setMenuOpen(false)}
+        onFilters={() => navigation.navigate("Preferences")}
+      />
       <Animated.Text
-        style={[styles.tickerLine, { color: ticker.color, opacity: blink }]}
+        style={[styles.tickerLine, { color: ticker.color, opacity: blink }, tickerGlow]}
       >
-        {ticker.text}
+        {ticker.prefix}
+        {ticker.num !== null ? <Text style={styles.flatNumeral}>{ticker.num}</Text> : null}
+        {ticker.suffix}
       </Animated.Text>
       <View style={styles.boardHeader}>
         <Text style={styles.colSym}>SYMBOL</Text>
@@ -256,8 +294,10 @@ export function WatchlistScreen({ navigation, deviceId }: Props) {
           { paddingBottom: Math.max(insets.bottom, 10) + 10, paddingTop: 12 },
         ]}
       >
+        {/* The status is runtime text with no static chrome words, so it takes
+            no glow and all of it sits in the flat numeral child (Req 46a/46b). */}
         <Text style={styles.footerText} numberOfLines={2}>
-          {status || " "}
+          <Text style={styles.flatNumeral}>{status || " "}</Text>
         </Text>
         <Text style={styles.disclosureText}>Some links may earn us a commission</Text>
       </View>
@@ -287,9 +327,8 @@ const createStyles = (t: Theme) => StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.06)",
   },
   tickerLine: {
-    fontFamily: fonts.pixel,
-    fontSize: 9,
-    letterSpacing: 0.5,
+    ...labelType(t, "tickerLine"),
+    // Its own taller line box, already the same in every theme.
     lineHeight: 16,
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -319,11 +358,12 @@ const createStyles = (t: Theme) => StyleSheet.create({
     width: 32,
     height: 32,
   },
+  // The line box stays 22 in every theme, so switching never moves the header
+  // (theme-switcher Requirement 2.2).
   brand: {
+    ...displayType(t, BRAND_SIZE),
+    ...signGlow(t, t.colors.accentPrimary, BRAND_SIZE * t.type.display.scale),
     color: t.colors.textPrimary,
-    fontFamily: fonts.pixel,
-    fontSize: 16,
-    letterSpacing: 1,
     lineHeight: 22,
   },
   // Two-tone wordmark: only SNIPER's colour changes. Nested inside the brand
@@ -371,16 +411,14 @@ const createStyles = (t: Theme) => StyleSheet.create({
     backgroundColor: t.colors.surfaceRaised,
   },
   colSym: {
+    ...labelType(t, "colSym"),
+    ...labelGlow(t, t.colors.textLabel, LABEL_FONT_SIZE),
     color: t.colors.textLabel,
-    fontFamily: fonts.pixel,
-    fontSize: 9,
-    letterSpacing: 0.5,
   },
   colPx: {
+    ...labelType(t, "colPx"),
+    ...labelGlow(t, t.colors.textLabel, LABEL_FONT_SIZE),
     color: t.colors.textLabel,
-    fontFamily: fonts.pixel,
-    fontSize: 9,
-    letterSpacing: 0.5,
   },
   empty: {
     color: t.colors.textSecondary,
@@ -405,8 +443,17 @@ const createStyles = (t: Theme) => StyleSheet.create({
   disclosureText: {
     color: t.colors.textSecondary,
     fontFamily: fonts.mono,
-    fontSize: 10,
+    ...labelGlow(t, t.colors.textSecondary, DISCLOSURE_SIZE),
+    fontSize: DISCLOSURE_SIZE,
     lineHeight: 14,
     paddingTop: 2,
+  },
+  // Blade Runner Req 46b: nested <Text> inherits the parent's text shadow, so
+  // a numeral child must reset it explicitly or the glow lands on its digits.
+  // The family is explicit too, because in Retro Arcade the parent is pixel type.
+  flatNumeral: {
+    fontFamily: fonts.mono,
+    textShadowRadius: 0,
+    textShadowColor: "transparent",
   },
 });
