@@ -9,6 +9,7 @@
   font-weight: var(--font-label-weight);
   text-transform: var(--font-label-transform);
   font-size: 0.55rem;
+  line-height: var(--line-label);
   letter-spacing: var(--tracking-tape-label);
   color: var(--text-label);
   text-shadow: var(--glow-label);

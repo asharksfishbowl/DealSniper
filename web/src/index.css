@@ -9,6 +9,14 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  /* The label slots' line box, the same in every theme (theme-switcher
+     Invariant 3), so it is not a theme variable. `normal` would follow each
+     font's metrics: IBM Plex Mono's box is 2px taller than Press Start 2P's.
+     round() reproduces Press Start 2P's normal, whose 1em ascent Chromium
+     rounds to a whole pixel (0.55rem = 8.8px renders 9px, measured; a plain
+     `1` was 0.2px short). Verified at 0.55rem, the only label size. The em
+     resolves where the variable is used. */
+  --line-label: round(1em, 1px);
 }
 
 * {
