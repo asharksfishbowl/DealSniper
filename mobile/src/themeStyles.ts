@@ -177,18 +177,37 @@ export function displayType(theme: Theme, authoredSize: number): TextStyle {
   };
 }
 
-/** The theme's label type for one of the four mobile label slots. Sizes stay per slot. */
+/** The authored size of the label slots, in every theme (Invariant 3). */
+export const LABEL_FONT_SIZE = 9;
+
+// The label line box, fixed so it is the same in every theme (Invariant 3).
+// Left to each font's metrics, IBM Plex Mono's box is taller than Press Start
+// 2P's and switching theme moved the rows below the labels. The value is Retro
+// Arcade's natural box, from Press Start 2P's tables (unitsPerEm 1000): iOS
+// sizes a line from hhea ascender 1000 / descender 0 = 1.0em; Android, under
+// RN's default includeFontPadding, from head yMax 1000 / yMin -374 = 1.374em.
+// includeFontPadding stays on: turning it off would change Retro Arcade's
+// Android layout. Inferred from font metrics, not measured on a device.
+const LABEL_LINE_HEIGHT = Platform.select({
+  android: Math.round(LABEL_FONT_SIZE * 1.374),
+  default: LABEL_FONT_SIZE,
+});
+
+/**
+ * The full label text style for one mobile label slot: the theme's family,
+ * transform and tracking, plus the theme-invariant size and line box, so no
+ * label can end up with a line box that varies by theme.
+ */
 export function labelType(theme: Theme, slot: MobileLabelSlot): TextStyle {
   const { family, weight, transform, tracking } = theme.type.label;
   return {
     fontFamily: fontFamily(family, weight),
+    fontSize: LABEL_FONT_SIZE,
+    lineHeight: LABEL_LINE_HEIGHT,
     textTransform: transform,
     letterSpacing: tracking.mobile[slot],
   };
 }
-
-/** The authored size of the four label slots, in every theme (Invariant 3). */
-export const LABEL_FONT_SIZE = 9;
 
 // Blade Runner Req 44a: React Native has one text shadow and no em unit, so the
 // web's em radii survive as multiples of the font size.

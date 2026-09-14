@@ -4,7 +4,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { fonts } from "../fonts";
 import { THEMES, type Theme, type ThemeId } from "../theme";
 import { THEME_MARKS } from "../themeMarks";
-import { LABEL_FONT_SIZE, displayType, labelType, useSetTheme, useTheme, useThemedStyles } from "../themeStyles";
+import { displayType, labelType, useSetTheme, useTheme, useThemedStyles } from "../themeStyles";
 
 type Props = {
   visible: boolean;
@@ -142,7 +142,6 @@ const createStyles = (t: Theme) => StyleSheet.create({
   sectionLabel: {
     ...labelType(t, "colSym"),
     color: t.colors.textLabel,
-    fontSize: LABEL_FONT_SIZE,
     paddingHorizontal: 14,
     paddingTop: 11,
     paddingBottom: 6,

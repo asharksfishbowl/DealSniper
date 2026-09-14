@@ -65,7 +65,6 @@ const createStyles = (t: Theme) => StyleSheet.create({
     ...labelType(t, "tapeLabel"),
     ...labelGlow(t, t.colors.textLabel, LABEL_FONT_SIZE),
     color: t.colors.textLabel,
-    fontSize: LABEL_FONT_SIZE,
     paddingHorizontal: 14,
     marginBottom: 4,
   },

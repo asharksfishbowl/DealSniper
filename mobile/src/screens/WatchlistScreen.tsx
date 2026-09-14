@@ -328,7 +328,7 @@ const createStyles = (t: Theme) => StyleSheet.create({
   },
   tickerLine: {
     ...labelType(t, "tickerLine"),
-    fontSize: LABEL_FONT_SIZE,
+    // Its own taller line box, already the same in every theme.
     lineHeight: 16,
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -414,13 +414,11 @@ const createStyles = (t: Theme) => StyleSheet.create({
     ...labelType(t, "colSym"),
     ...labelGlow(t, t.colors.textLabel, LABEL_FONT_SIZE),
     color: t.colors.textLabel,
-    fontSize: LABEL_FONT_SIZE,
   },
   colPx: {
     ...labelType(t, "colPx"),
     ...labelGlow(t, t.colors.textLabel, LABEL_FONT_SIZE),
     color: t.colors.textLabel,
-    fontSize: LABEL_FONT_SIZE,
   },
   empty: {
     color: t.colors.textSecondary,
