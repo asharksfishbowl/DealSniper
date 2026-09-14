@@ -1,14 +1,17 @@
 .tape {
-  background: #0e1411;
-  border-bottom: 1px solid #1e2a22;
+  background: var(--surface-inset);
+  border-bottom: 1px solid var(--line-hairline);
   padding: 0.55rem 0 0.7rem;
 }
 
 .tape-label {
-  font-family: "Press Start 2P", "IBM Plex Mono", monospace;
+  font-family: var(--font-label);
+  font-weight: var(--font-label-weight);
+  text-transform: var(--font-label-transform);
   font-size: 0.55rem;
-  letter-spacing: 0.06em;
-  color: #4a5c4e;
+  letter-spacing: var(--tracking-tape-label);
+  color: var(--text-label);
+  text-shadow: var(--glow-label);
   padding: 0 1.25rem 0.35rem;
 }
 
@@ -21,7 +24,7 @@
   display: inline-flex;
   gap: 4rem;
   animation: tape-scroll linear infinite;
-  color: #2ee56a;
+  color: var(--accent-primary);
   font-family: "IBM Plex Mono", monospace;
   font-weight: 500;
   font-size: clamp(1rem, 1.6vw, 1.35rem);

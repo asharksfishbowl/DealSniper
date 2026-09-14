@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   IoCartOutline,
+  IoCheckmarkOutline,
+  IoColorPaletteOutline,
   IoExpandOutline,
   IoMenuOutline,
   IoOptionsOutline,
@@ -14,8 +16,11 @@ import { getKioskDeviceId } from "./device";
 import { formatRating, formatReviews } from "./format";
 import { PreferencesPanel } from "./PreferencesPanel";
 import { TickerTape } from "./TickerTape";
+import { THEMES, type ThemeColors, type ThemeId } from "./theme";
+import { useSetTheme, useTheme } from "./themeContext";
+import { fontStack } from "./themeCss";
+import { THEME_MARKS } from "./themeMarks";
 import type { Deal, RefreshResult } from "./types";
-import { colors } from "./types";
 import "./App.css";
 
 const BOARD_MS = 90_000;
@@ -30,14 +35,14 @@ function toggleFullscreen() {
   }
 }
 
-function deltaColor(pct: number) {
-  if (pct >= 20) return colors.green;
-  if (pct > 0) return colors.amber;
-  return colors.red;
+function deltaColor(colors: ThemeColors, pct: number) {
+  if (pct >= 20) return colors.stateGain;
+  if (pct > 0) return colors.stateMid;
+  return colors.stateLoss;
 }
 
-function retailerColor(retailer: string) {
-  return (colors as Record<string, string>)[retailer] ?? colors.textMuted;
+function retailerColor(colors: ThemeColors, retailer: string) {
+  return (colors as Record<string, string>)[retailer] ?? colors.textSecondary;
 }
 
 function formatClock(d: Date) {
@@ -53,28 +58,101 @@ function dealHref(deal: Deal): string | undefined {
 // refresh-state-contract backend work lands — falls back to "cached" with a
 // 0s age placeholder (Edge Case 2/4's own "null cache_age_seconds" case,
 // which the backend spec explicitly leaves to this frontend implementation).
-function tickerLineFor(result: RefreshResult | null): {
-  text: string;
+// The line's runtime portion comes back separately so App can render it in a
+// flat .ticker-num span: glow may never touch a digit (Blade Runner Req 36/46).
+// prefix + num + suffix is exactly the string this used to return.
+type TickerLine = {
+  prefix: string;
+  num: string | null;
+  suffix: string;
   color: string;
   state: string;
-} {
+};
+
+function tickerLineFor(colors: ThemeColors, result: RefreshResult | null): TickerLine {
   const state = result?.refresh_state;
   if (state === "quota_exhausted") {
     const date = (result?.quota_reset_date ?? "SOON").toUpperCase();
-    return { text: `OUT OF CREDITS · RESUME ${date}`, color: colors.red, state: "quota" };
+    return { prefix: "OUT OF CREDITS · RESUME ", num: date, suffix: "", color: colors.stateLoss, state: "quota" };
   }
   if (state === "rate_limited") {
     const secs = result?.cooldown_seconds ?? 0;
-    return { text: `COOLDOWN · RETRY ${secs}S`, color: colors.red, state: "cooldown" };
+    return { prefix: "COOLDOWN · RETRY ", num: String(secs), suffix: "S", color: colors.stateLoss, state: "cooldown" };
   }
   if (state === "live") {
-    return { text: "LIVE FEED · SCANNING...", color: colors.cyan, state: "live" };
+    return { prefix: "LIVE FEED · SCANNING...", num: null, suffix: "", color: colors.stateLive, state: "live" };
   }
   const secs = result?.cache_age_seconds ?? 0;
-  return { text: `CACHED DATA · ${secs}S AGO`, color: colors.magenta, state: "cached" };
+  return { prefix: "CACHED DATA · ", num: String(secs), suffix: "S AGO", color: colors.stateCached, state: "cached" };
+}
+
+// The dropdown shell both menus share: a full-screen overlay that closes on
+// click, around a role="menu" panel that swallows its own clicks.
+function MenuOverlay({ label, className, style, onClose, children }: {
+  label: string;
+  className?: string;
+  style?: CSSProperties;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="topbar-menu-overlay" onClick={onClose} role="presentation">
+      <div
+        className={className ? `topbar-menu ${className}` : "topbar-menu"}
+        role="menu"
+        aria-label={label}
+        style={style}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// One row per registered theme, in registry order. Each row previews its OWN
+// theme -- mark, display font, accent -- so the list shows the themes rather
+// than naming them (theme-switcher Requirement 3.3).
+function ThemeRows({ activeId, onChoose }: { activeId: ThemeId; onChoose: (id: ThemeId) => void }) {
+  return (
+    <>
+      {THEMES.map((option) => {
+        const checked = option.id === activeId;
+        const mark = THEME_MARKS[option.markId].header32;
+        return (
+          <button
+            key={option.id}
+            type="button"
+            role="menuitemradio"
+            aria-checked={checked}
+            className="theme-row"
+            style={{
+              fontFamily: fontStack(option.type.display.family, "display"),
+              // The theme's own scale and tracking, as its wordmark uses them,
+              // so every row shows equal cap height (theme-switcher D6).
+              // Without the scale, Press Start 2P previews far larger than
+              // Bebas Neue at the same font-size.
+              fontSize: `calc(0.7rem * ${option.type.display.scale})`,
+              letterSpacing: option.type.display.tracking.web,
+              color: checked ? option.colors.accentPrimary : option.colors.textPrimary,
+            }}
+            onClick={() => onChoose(option.id)}
+          >
+            <img src={mark.src} srcSet={mark.srcSet} alt="" aria-hidden="true" />
+            {option.label}
+            {/* Selection never relies on colour alone. */}
+            {checked ? <IoCheckmarkOutline className="theme-row-check" aria-hidden="true" /> : null}
+          </button>
+        );
+      })}
+    </>
+  );
 }
 
 export default function App() {
+  const theme = useTheme();
+  const { colors } = theme;
+  const setTheme = useSetTheme();
   const [deals, setDeals] = useState<Deal[]>([]);
   const [status, setStatus] = useState("connecting…");
   const [now, setNow] = useState(() => new Date());
@@ -82,6 +160,11 @@ export default function App() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Where the Theme dropdown sits, measured from the Theme button when it opens;
+  // null while closed.
+  const [themeMenuAt, setThemeMenuAt] = useState<{ top: number; right: number } | null>(null);
+  const themeButtonRef = useRef<HTMLButtonElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [cart, setCart] = useState<Deal[]>(loadCart);
   const [refreshInfo, setRefreshInfo] = useState<RefreshResult | null>(null);
   const deviceId = getKioskDeviceId();
@@ -139,6 +222,41 @@ export default function App() {
     };
   }, [cycleLive, deviceId, load]);
 
+  const closeThemeMenu = useCallback(() => {
+    setThemeMenuAt(null);
+    themeButtonRef.current?.focus();
+  }, []);
+
+  const toggleThemeMenu = () => {
+    if (themeMenuAt) {
+      closeThemeMenu();
+      return;
+    }
+    const rect = themeButtonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    // Anchored under the button and right-aligned to it.
+    setThemeMenuAt({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+  };
+
+  // The dropdown's position is measured once, when it opens. Any resize --
+  // fullscreen, the button beside Theme, is the obvious one -- would strand it
+  // away from its button, and crossing 480px hides the button so focus couldn't
+  // return to it. Closing on resize, like Escape does, avoids both.
+  useEffect(() => {
+    if (!themeMenuAt) return;
+    window.addEventListener("resize", closeThemeMenu);
+    return () => window.removeEventListener("resize", closeThemeMenu);
+  }, [themeMenuAt, closeThemeMenu]);
+
+  // Selecting applies instantly and persists (via setTheme), closes the menu
+  // and returns focus to the control that opened it. The active theme just
+  // closes (Requirement 3.3).
+  const chooseTheme = (id: ThemeId, close: () => void, opener: HTMLButtonElement | null) => {
+    if (id !== theme.id) setTheme(id);
+    close();
+    opener?.focus();
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === "f" && !filtersOpen) {
@@ -153,25 +271,36 @@ export default function App() {
       if (e.key === "Escape") {
         setFiltersOpen(false);
         setMenuOpen(false);
+        if (themeMenuAt) closeThemeMenu();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [cycleLive, filtersOpen]);
+  }, [cycleLive, filtersOpen, themeMenuAt, closeThemeMenu]);
 
   const top = deals[0];
-  const ticker = tickerLineFor(refreshInfo);
+  const ticker = tickerLineFor(colors, refreshInfo);
+  const mark = THEME_MARKS[theme.markId];
 
   return (
     <div className="kiosk">
-      <div className="crt-overlay" aria-hidden="true" />
+      {theme.overlay.opacity > 0 ? <div className="crt-overlay" aria-hidden="true" /> : null}
       <header className="topbar">
         <div className="brand-lockup">
           {/* Decorative: the DEALSNIPER heading beside it is the accessible
-              name, so the mark carries no alt text of its own. An <img> of
-              the exported SVG rather than inline JSX, so the bitmap stays
-              defined once (specs/logo/design-logo.md Req 3.5). */}
-          <img className="brand-mark" src="/reticle-mark.svg" alt="" aria-hidden="true" />
+              name, so the mark carries no alt text of its own. The active
+              theme picks the image; the box stays 48px, or 32px at <=900px,
+              in every theme. */}
+          <picture>
+            <source media="(max-width: 900px)" srcSet={mark.header32.srcSet ?? mark.header32.src} />
+            <img
+              className="brand-mark"
+              src={mark.header48.src}
+              srcSet={mark.header48.srcSet}
+              alt=""
+              aria-hidden="true"
+            />
+          </picture>
           <div>
             <h1 className="brand">
               DEAL<span className="brand-accent">SNIPER</span>
@@ -215,6 +344,18 @@ export default function App() {
               >
                 <IoExpandOutline aria-hidden="true" />
               </button>
+              <button
+                ref={themeButtonRef}
+                type="button"
+                className="ghost"
+                aria-label="Theme"
+                title="Theme"
+                aria-haspopup="menu"
+                aria-expanded={themeMenuAt !== null}
+                onClick={toggleThemeMenu}
+              >
+                <IoColorPaletteOutline aria-hidden="true" />
+              </button>
             </div>
             {/* Cart stays outside the hamburger at every width -- it's the
                 one action a phone-width kiosk user reaches for constantly,
@@ -230,6 +371,7 @@ export default function App() {
               <span>{cart.length}</span>
             </button>
             <button
+              ref={menuButtonRef}
               type="button"
               className="ghost topbar-menu-btn"
               aria-label="Menu"
@@ -243,17 +385,7 @@ export default function App() {
       </header>
 
       {menuOpen && (
-        <div
-          className="topbar-menu-overlay"
-          onClick={() => setMenuOpen(false)}
-          role="presentation"
-        >
-          <div
-            className="topbar-menu"
-            role="menu"
-            aria-label="Menu"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <MenuOverlay label="Menu" onClose={() => setMenuOpen(false)}>
             <button
               type="button"
               role="menuitem"
@@ -287,8 +419,28 @@ export default function App() {
             >
               <IoExpandOutline aria-hidden="true" /> Fullscreen
             </button>
-          </div>
-        </div>
+            <div className="topbar-menu-divider" role="separator" />
+            <div className="topbar-menu-label">THEME</div>
+            <ThemeRows
+              activeId={theme.id}
+              onChoose={(id) => chooseTheme(id, () => setMenuOpen(false), menuButtonRef.current)}
+            />
+        </MenuOverlay>
+      )}
+
+      {themeMenuAt && (
+        <MenuOverlay
+          label="Theme"
+          className="theme-menu"
+          style={{ top: themeMenuAt.top, right: themeMenuAt.right }}
+          onClose={closeThemeMenu}
+        >
+          <div className="topbar-menu-label">THEME</div>
+          <ThemeRows
+            activeId={theme.id}
+            onChoose={(id) => chooseTheme(id, () => setThemeMenuAt(null), themeButtonRef.current)}
+          />
+        </MenuOverlay>
       )}
 
       <TickerTape deals={deals} />
@@ -300,7 +452,7 @@ export default function App() {
           const heroBody = (
             <>
               <div className="hero-meta">
-                <span style={{ color: retailerColor(top.retailer) }}>{top.ticker}</span>
+                <span style={{ color: retailerColor(colors, top.retailer) }}>{top.ticker}</span>
                 <span className="hero-retailer">{top.retailer.toUpperCase()}</span>
                 {top.is_demo ? (
                   <span className="demo-banner">DEMO DATA · PRICES ARE NOT LIVE</span>
@@ -319,7 +471,7 @@ export default function App() {
                 </div>
                 <div>
                   <div className="num-label">CHG%</div>
-                  <div className="num-value" style={{ color: deltaColor(top.pct_off) }}>
+                  <div className="num-value" style={{ color: deltaColor(colors, top.pct_off) }}>
                     {top.pct_off > 0 ? "+" : ""}
                     {top.pct_off.toFixed(1)}%
                   </div>
@@ -366,7 +518,9 @@ export default function App() {
       ) : null}
 
       <div className={`ticker-line state-${ticker.state}`} style={{ color: ticker.color }}>
-        {ticker.text}
+        {ticker.prefix}
+        {ticker.num !== null ? <span className="ticker-num">{ticker.num}</span> : null}
+        {ticker.suffix}
       </div>
 
       <div className="board-head">
@@ -392,7 +546,7 @@ export default function App() {
               className={rowClass}
               onAnimationEnd={() => setFlashId(null)}
             >
-              <span className="sym" style={{ color: retailerColor(deal.retailer) }}>
+              <span className="sym" style={{ color: retailerColor(colors, deal.retailer) }}>
                 {deal.ticker || deal.external_id}
                 {deal.is_demo ? <small className="demo-badge">DEMO</small> : null}
               </span>
@@ -411,7 +565,7 @@ export default function App() {
               )}
               <span className="rating">{formatRating(deal.rating, deal.review_count)}</span>
               <span className="px">${deal.price.toFixed(2)}</span>
-              <span className="delta" style={{ color: deltaColor(deal.pct_off) }}>
+              <span className="delta" style={{ color: deltaColor(colors, deal.pct_off) }}>
                 {deal.pct_off > 0 ? "+" : ""}
                 {deal.pct_off.toFixed(1)}%
               </span>
@@ -436,7 +590,7 @@ export default function App() {
       </div>
 
       <footer className="status">
-        <span>{status}</span>
+        <span className="status-num">{status}</span>
         <span>P filters · F fullscreen · R refresh</span>
         <span>Some links may earn us a commission</span>
       </footer>

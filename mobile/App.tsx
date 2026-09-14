@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StatusBar, StyleSheet, View } from "react-native";
 import { NavigationContainer, DarkTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -20,23 +20,40 @@ import { CartScreen } from "./src/screens/CartScreen";
 import { DealDetailScreen } from "./src/screens/DealDetailScreen";
 import { PreferencesScreen } from "./src/screens/PreferencesScreen";
 import { WatchlistScreen } from "./src/screens/WatchlistScreen";
-import { colors, fonts } from "./src/theme";
+import { fonts } from "./src/fonts";
+import type { Theme } from "./src/theme";
+import { ThemeProvider, useTheme, useThemedStyles } from "./src/themeStyles";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-const navTheme = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    background: colors.bg,
-    card: colors.bgElevated,
-    text: colors.text,
-    border: colors.border,
-    primary: colors.green,
-  },
-};
-
 export default function App() {
+  return (
+    <ThemeProvider>
+      <AppRoot />
+    </ThemeProvider>
+  );
+}
+
+// Everything below reads the theme, so it has to render inside ThemeProvider.
+function AppRoot() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
+  // Memoised on the theme's colours so NavigationContainer keeps receiving the
+  // same object across renders, as it did when this was a module-level constant.
+  const navTheme = useMemo(
+    () => ({
+      ...DarkTheme,
+      colors: {
+        ...DarkTheme.colors,
+        background: colors.surfaceDeep,
+        card: colors.surfaceRaised,
+        text: colors.textPrimary,
+        border: colors.lineHairline,
+        primary: colors.accentPrimary,
+      },
+    }),
+    [colors],
+  );
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [fontsLoaded] = useFonts({
     IBMPlexMono_400Regular,
@@ -72,7 +89,7 @@ export default function App() {
   if (!fontsLoaded || !deviceId) {
     return (
       <View style={styles.boot}>
-        <ActivityIndicator color={colors.green} />
+        <ActivityIndicator color={colors.accentPrimary} />
       </View>
     );
   }
@@ -85,13 +102,13 @@ export default function App() {
           key="dealsniper-root"
           initialRouteName="Watchlist"
           screenOptions={{
-            headerStyle: { backgroundColor: colors.bgElevated },
-            headerTintColor: colors.green,
+            headerStyle: { backgroundColor: colors.surfaceRaised },
+            headerTintColor: colors.accentPrimary,
             headerTitleStyle: {
               fontFamily: fonts.monoMed,
               fontSize: 18,
             },
-            contentStyle: { backgroundColor: colors.bg },
+            contentStyle: { backgroundColor: colors.surfaceDeep },
           }}
         >
           <Stack.Screen name="Watchlist" options={{ headerShown: false }}>
@@ -110,10 +127,10 @@ export default function App() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (t: Theme) => StyleSheet.create({
   boot: {
     flex: 1,
-    backgroundColor: colors.bg,
+    backgroundColor: t.colors.surfaceDeep,
     alignItems: "center",
     justifyContent: "center",
   },

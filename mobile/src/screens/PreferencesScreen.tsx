@@ -22,7 +22,9 @@ import {
 } from "../api";
 import { registerForPushNotifications, pushAvailable } from "../notifications";
 import type { Preferences } from "../types";
-import { colors, fonts } from "../theme";
+import { fonts } from "../fonts";
+import type { Theme } from "../theme";
+import { useTheme, useThemedStyles } from "../themeStyles";
 import type { RootStackParamList } from "../navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Preferences"> & {
@@ -73,6 +75,8 @@ function emptyPrefs(deviceId: string): Preferences {
 }
 
 export function PreferencesScreen({ navigation, deviceId }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [prefs, setPrefs] = useState<Preferences | null>(null);
   const [keywordsText, setKeywordsText] = useState("");
   const [categoriesText, setCategoriesText] = useState("");
@@ -174,7 +178,7 @@ export function PreferencesScreen({ navigation, deviceId }: Props) {
   if (loading && !prefs) {
     return (
       <View style={styles.screen}>
-        <ActivityIndicator color={colors.green} style={{ marginTop: 40 }} />
+        <ActivityIndicator color={colors.accentPrimary} style={{ marginTop: 40 }} />
         <Text style={styles.message}>Loading filters…</Text>
         <Text style={styles.apiHint}>{getApiBase()}</Text>
       </View>
@@ -227,7 +231,7 @@ export function PreferencesScreen({ navigation, deviceId }: Props) {
           value={keywordsText}
           onChangeText={setKeywordsText}
           placeholder="tv, laptop, olive oil"
-          placeholderTextColor={colors.textDim}
+          placeholderTextColor={colors.textLabel}
           autoCapitalize="none"
           autoCorrect={false}
         />
@@ -253,7 +257,7 @@ export function PreferencesScreen({ navigation, deviceId }: Props) {
           onChangeText={setMinPct}
           keyboardType="decimal-pad"
           placeholder="15"
-          placeholderTextColor={colors.textDim}
+          placeholderTextColor={colors.textLabel}
         />
 
         <Text style={styles.label}>MAX PRICE (OPTIONAL)</Text>
@@ -263,7 +267,7 @@ export function PreferencesScreen({ navigation, deviceId }: Props) {
           onChangeText={setMaxPrice}
           keyboardType="decimal-pad"
           placeholder="e.g. 500"
-          placeholderTextColor={colors.textDim}
+          placeholderTextColor={colors.textLabel}
         />
 
         <Text style={styles.label}>CATEGORIES</Text>
@@ -272,7 +276,7 @@ export function PreferencesScreen({ navigation, deviceId }: Props) {
           value={categoriesText}
           onChangeText={setCategoriesText}
           placeholder="electronics, home, kitchen"
-          placeholderTextColor={colors.textDim}
+          placeholderTextColor={colors.textLabel}
           autoCapitalize="none"
           autoCorrect={false}
         />
@@ -328,8 +332,8 @@ export function PreferencesScreen({ navigation, deviceId }: Props) {
           <Switch
             value={prefs.alerts_enabled}
             onValueChange={onToggleAlerts}
-            trackColor={{ false: colors.border, true: colors.greenDim }}
-            thumbColor={prefs.alerts_enabled ? colors.green : colors.textMuted}
+            trackColor={{ false: colors.lineHairline, true: colors.stateGainDim }}
+            thumbColor={prefs.alerts_enabled ? colors.accentPrimary : colors.textSecondary}
           />
         </View>
 
@@ -347,23 +351,23 @@ export function PreferencesScreen({ navigation, deviceId }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (t: Theme) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.bg,
+    backgroundColor: t.colors.surfaceDeep,
   },
   content: {
     padding: 16,
     paddingBottom: 40,
   },
   heading: {
-    color: colors.text,
+    color: t.colors.textPrimary,
     fontFamily: fonts.brand,
     fontSize: 40,
     letterSpacing: 2,
   },
   hint: {
-    color: colors.textDim,
+    color: t.colors.textLabel,
     fontFamily: fonts.mono,
     fontSize: 14,
     lineHeight: 20,
@@ -371,7 +375,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   label: {
-    color: colors.textDim,
+    color: t.colors.textLabel,
     fontFamily: fonts.mono,
     fontSize: 13,
     letterSpacing: 1.5,
@@ -379,10 +383,10 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   input: {
-    backgroundColor: colors.bgElevated,
+    backgroundColor: t.colors.surfaceRaised,
     borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.text,
+    borderColor: t.colors.lineHairline,
+    color: t.colors.textPrimary,
     fontFamily: fonts.mono,
     fontSize: 17,
     paddingHorizontal: 12,
@@ -395,22 +399,22 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: t.colors.lineHairline,
     paddingHorizontal: 14,
     paddingVertical: 11,
   },
   chipOn: {
-    borderColor: colors.green,
-    backgroundColor: "#122016",
+    borderColor: t.colors.accentPrimary,
+    backgroundColor: t.colors.surfaceSelected,
   },
   chipText: {
-    color: colors.textMuted,
+    color: t.colors.textSecondary,
     fontFamily: fonts.monoMed,
     fontSize: 14,
     letterSpacing: 1,
   },
   chipTextOn: {
-    color: colors.green,
+    color: t.colors.accentPrimary,
   },
   alertRow: {
     marginTop: 20,
@@ -419,22 +423,22 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderColor: colors.border,
+    borderColor: t.colors.lineHairline,
   },
   save: {
     marginTop: 28,
-    backgroundColor: colors.green,
+    backgroundColor: t.colors.accentPrimary,
     paddingVertical: 17,
     alignItems: "center",
   },
   saveText: {
-    color: colors.bg,
+    color: t.colors.accentPrimaryInk,
     fontFamily: fonts.monoBold,
     fontSize: 16,
     letterSpacing: 1.5,
   },
   message: {
-    color: colors.textMuted,
+    color: t.colors.textSecondary,
     fontFamily: fonts.mono,
     fontSize: 14,
     lineHeight: 20,
@@ -442,7 +446,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   apiHint: {
-    color: colors.textDim,
+    color: t.colors.textLabel,
     fontFamily: fonts.mono,
     fontSize: 13,
     marginTop: 8,
@@ -451,12 +455,12 @@ const styles = StyleSheet.create({
   retry: {
     marginTop: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: t.colors.lineHairline,
     paddingVertical: 10,
     alignItems: "center",
   },
   retryText: {
-    color: colors.green,
+    color: t.colors.accentPrimary,
     fontFamily: fonts.monoMed,
     letterSpacing: 1.2,
     fontSize: 14,
