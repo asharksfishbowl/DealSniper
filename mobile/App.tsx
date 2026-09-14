@@ -22,13 +22,25 @@ import { PreferencesScreen } from "./src/screens/PreferencesScreen";
 import { WatchlistScreen } from "./src/screens/WatchlistScreen";
 import { fonts } from "./src/fonts";
 import type { Theme } from "./src/theme";
+import { readStoredTheme } from "./src/themePersistence";
 import { ThemeProvider, useTheme, useThemedStyles } from "./src/themeStyles";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
+  const [initialTheme, setInitialTheme] = useState<Theme | null>(null);
+
+  useEffect(() => {
+    void readStoredTheme().then(setInitialTheme);
+  }, []);
+
+  // Nothing renders until the saved theme is known, so the first frame (the
+  // boot spinner below) is already in it. Never the default, then a swap
+  // (theme-switcher Requirement 5.3).
+  if (!initialTheme) return null;
+
   return (
-    <ThemeProvider>
+    <ThemeProvider initialTheme={initialTheme}>
       <AppRoot />
     </ThemeProvider>
   );
